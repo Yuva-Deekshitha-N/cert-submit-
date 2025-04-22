@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,27 +13,32 @@ const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.id]: e.target.value });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate that both email and password are provided
     if (!form.email || !form.password) {
       setError("Please enter your credentials.");
       return;
     }
+
+    // Proceed with mock login
     login();
-    // After mock login, redirect to intended page or dashboard.
+    
+    // Redirect after mock login (either to intended route or dashboard)
     const redirectPath = location.state?.from?.pathname || "/dashboard";
     navigate(redirectPath, { replace: true });
   };
-
-  // If user is already authenticated, redirect to dashboard
-  if (isAuthenticated()) {
-    navigate("/dashboard", { replace: true });
-    return null;
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">

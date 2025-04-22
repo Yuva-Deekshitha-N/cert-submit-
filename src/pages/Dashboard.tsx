@@ -10,10 +10,11 @@ import { Link } from "react-router-dom";
 const Dashboard = () => {
   // Mock data for certificates
   const certificates = [
-    { id: 1, name: "Bonafide Certificate", status: "Completed", dueDate: "Submitted", priority: "low" },
-    { id: 2, name: "Examination Fee Receipt", status: "Pending", dueDate: "Apr 30, 2025", priority: "high" },
-    { id: 3, name: "Course Completion Certificate", status: "In Progress", dueDate: "May 15, 2025", priority: "medium" },
-    { id: 4, name: "Academic Transcript", status: "Not Started", dueDate: "Jun 10, 2025", priority: "medium" },
+    { id: 1, name: "Epass Certificate", status: "Completed", dueDate: "Submitted", priority: "low"},
+    { id: 2, name: "Bonafide Certificate", status: "Completed", dueDate: "Submitted", priority: "low" },
+    { id: 3, name: "Examination Fee Receipt", status: "completed", dueDate: "Apr 30, 2025", priority: "high" },
+    { id: 4, name: "Course Completion Certificate", status: "In Progress", dueDate: "May 15, 2025", priority: "medium" },
+    { id: 5, name: "Academic Transcript", status: "Not Started", dueDate: "Jun 10, 2025", priority: "medium" },
   ];
 
   // Mock data for upcoming deadlines

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,21 @@ const Chatbot = () => {
       timestamp: new Date(),
     },
   ]);
+  const [showDialogflow, setShowDialogflow] = useState(false);
+
+  // Load Dialogflow script dynamically
+  useEffect(() => {
+    if (showDialogflow) {
+      const script = document.createElement('script');
+      script.src = 'https://www.gstatic.com/dialogflow-console/fast/messenger/bootstrap.js?v=1';
+      script.async = true;
+      document.body.appendChild(script);
+
+      return () => {
+        document.body.removeChild(script);
+      };
+    }
+  }, [showDialogflow]);
 
   // Mock responses based on keywords
   const getBotResponse = (query: string): string => {
@@ -93,6 +107,10 @@ const Chatbot = () => {
     }
   };
 
+  const toggleDialogflow = () => {
+    setShowDialogflow(!showDialogflow);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -105,13 +123,25 @@ const Chatbot = () => {
               <Card className="h-[calc(100vh-250px)] flex flex-col">
                 <CardContent className="flex flex-col h-full p-0">
                   <div className="bg-maroon-700 text-white p-4">
-                    <h2 className="text-xl font-semibold flex items-center">
-                      <Bot className="h-5 w-5 mr-2" />
-                      AI Certificate Assistant
-                    </h2>
-                    <p className="text-sm opacity-80">
-                      Ask me anything about certificate submissions, deadlines, or locations
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <Bot className="h-5 w-5 mr-2" />
+                        <div>
+                          <h2 className="text-xl font-semibold">AI Certificate Assistant</h2>
+                          <p className="text-sm opacity-80">
+                            Ask me anything about certificate submissions, deadlines, or locations
+                          </p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={toggleDialogflow}
+                        className="text-maroon-700 bg-white hover:bg-gray-100"
+                      >
+                        {showDialogflow ? 'Hide' : 'Show'} Advanced AI
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex-grow overflow-y-auto p-4 space-y-4">
@@ -239,6 +269,24 @@ const Chatbot = () => {
       </main>
       
       <Footer />
+
+      {/* Dialogflow Messenger (conditionally rendered) */}
+      {showDialogflow && (
+        <df-messenger
+          intent="WELCOME"
+          chat-title="JNTUH Advanced Assistant"
+          agent-id="d7491958-2a2a-4f84-a092-edb4c96e54d8"
+          language-code="en"
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+            width: '350px',
+            height: '500px'
+          }}
+        ></df-messenger>
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Search, MapPin, Building, Clock, Calendar } from "lucide-react";
 
 const Locations = () => {
-  // Mock data for submission locations
+  // Mock data for submission locations - all with same coordinates
   const locations = [
     {
       id: 1,
@@ -18,64 +17,70 @@ const Locations = () => {
       room: "A-105",
       hours: "9:00 AM - 5:00 PM",
       days: "Monday - Friday",
-      coordinates: { lat: 17.4932, lng: 78.3931 },
-      certificates: ["Bonafide Certificate", "Character Certificate"],
+      coordinates: { lat: 17.4952, lng: 78.393 },
+      certificates: ["Bonafide Certificate", "Character Certificate","Epass certificate","Metro pass"],
       contact: "+91 40 2272 1058",
-      image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500"
+      image: "https://assets.collegedunia.com/public/college_data/images/og_images/news/1664545148-pasted-image-0---2022-09-30T190558.285.png"
     },
     {
       id: 2,
       name: "Examination Department",
-      building: "Science Block",
+      building: "Exam centre",
       floor: "Ground Floor",
-      room: "S-12",
-      hours: "10:00 AM - 4:00 PM",
+      room: "counter-1",
+      hours: "10:00 AM - 5:00 PM",
       days: "Monday - Saturday",
-      coordinates: { lat: 17.4935, lng: 78.3938 },
-      certificates: ["Examination Fee Receipt", "Academic Transcript"],
+      coordinates: { lat: 17.495331, lng: 78.392880 },
+      certificates: ["Examination Fee Receipt","memos", "Academic Transcript"],
       contact: "+91 40 2272 2060",
-      image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500"
+      image: "https://tse3.mm.bing.net/th/id/OIP.1D9RH335ullfq3kguJ3mSQHaC9?w=1248&h=500&rs=1&pid=ImgDetMain"
     },
     {
       id: 3,
-      name: "Student Affairs Office",
-      building: "Central Library",
-      floor: "2nd Floor",
-      room: "L-202",
+      name: "counter services",
+      building: "SBI",
+      floor: "1st Floor",
+      room: "-",
       hours: "9:30 AM - 4:30 PM",
       days: "Monday - Friday",
-      coordinates: { lat: 17.4925, lng: 78.3940 },
-      certificates: ["Course Completion Certificate", "No Dues Certificate"],
+      coordinates: { lat: 17.494080, lng: 78.3935626 },
+      certificates: ["4th year graduation certificates like ODE.."],
       contact: "+91 40 2272 3042",
-      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500"
+      image: "https://media-hosting.imagekit.io/9a599ca3a39a4f7b/1.png?Expires=1839937009&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=UDaQgLtBHKs1Jyv72dN2R76zn6rwxROxs8nNMyTGEFQ96prOao-21sLE-DBzNazsoRLJ4I-HAPOG7~i9OLqmp0tcl7f~uk~UuA3wzqGwYBAjwLF73bDc0b2PpG6XuwNGbc3Tfrdc0Pf1ySNVJAdAyqnWWiKNBnOBg6JnjGj0bWlQtX6GJBTJQLltfIcQavoFNJLDP4EUKkMCOGTP6W434BEPGL1UziKwaG9VlDSVwHaqMQD80o4RENGOsF5ec2X87PCsng50BfejdmMq4dDLqA5zBbgZsc6Z12GE7a6m6riVLQndheClFdzbsI0sf-Z~AQdp-jOt26nj2majmw6~wA__"
     },
     {
       id: 4,
       name: "Department Office - CSE",
       building: "Engineering Block",
-      floor: "3rd Floor",
-      room: "E-301",
-      hours: "10:00 AM - 3:00 PM",
-      days: "Monday, Wednesday, Friday",
-      coordinates: { lat: 17.4940, lng: 78.3925 },
-      certificates: ["Internship Certificate", "Project Completion Certificate"],
+      floor: "Ground Floor",
+      room: "G2 beside",
+      hours: "10:00 AM - 5:00 PM",
+      days: "Monday-Friday",
+      coordinates: { lat: 17.493388, lng: 78.392391 },
+      certificates: ["Event certificates (Technical events)", "Project Completion Certificate"],
       contact: "+91 40 2272 4120",
-      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=500"
+      image: "https://tse4.mm.bing.net/th/id/OIP.DWjPz_C3-ecx59ERfLO6gAHaC4?rs=1&pid=ImgDetMain"
     },
     {
       id: 5,
       name: "Placement Cell",
       building: "Training & Placement Building",
-      floor: "1st Floor",
-      room: "TP-101",
+      floor: "3rd Floor",
+      room: "303",
       hours: "9:00 AM - 5:00 PM",
       days: "Monday - Friday",
-      coordinates: { lat: 17.4920, lng: 78.3950 },
+      coordinates: { lat: 17.493036, lng: 78.391561 },
       certificates: ["Internship Certificate", "Placement Verification"],
       contact: "+91 40 2272 5215",
       image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=500"
     },
   ];
+
+  // Function to handle getting directions
+  const handleGetDirections = (lat: number, lng: number) => {
+    const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`;
+    window.open(mapsUrl, '_blank');
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -161,6 +166,7 @@ const Locations = () => {
                             variant="outline" 
                             size="sm"
                             className="flex items-center"
+                            onClick={() => handleGetDirections(location.coordinates.lat, location.coordinates.lng)}
                           >
                             <MapPin className="h-3 w-3 mr-1" />
                             <span>Get Directions</span>
@@ -183,7 +189,10 @@ const Locations = () => {
                       <p className="text-muted-foreground max-w-md mx-auto mb-4">
                         Interactive campus map showing all certificate submission locations
                       </p>
-                      <Button className="bg-maroon-700 hover:bg-maroon-800">
+                      <Button 
+                        className="bg-maroon-700 hover:bg-maroon-800"
+                        onClick={() => handleGetDirections(17.4952, 78.393)}
+                      >
                         Enable Google Maps
                       </Button>
                     </div>

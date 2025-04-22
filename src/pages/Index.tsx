@@ -31,7 +31,7 @@ const Index = () => {
           </div>
           <div className="md:w-1/2">
             <img 
-              src="/lovable-uploads/46d0065d-7576-4cd6-a960-2bbf9d94a313.png" 
+              src="https://media.wcnc.com/assets/WCNC/images/fb371d0f-ea16-4f59-a9a6-8d8fc72d4e10/fb371d0f-ea16-4f59-a9a6-8d8fc72d4e10_1920x1080.jpg" 
               alt="Certificate Submission Assistant" 
               className="rounded-lg shadow-xl w-full max-w-md mx-auto"
             />
