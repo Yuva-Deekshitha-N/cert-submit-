@@ -182,4 +182,8 @@ const Index = () => {
   );
 };
 
+// Index.tsx (anywhere before export)
+import(/* webpackPrefetch: true */ "@/pages/Register");
+
+
 export default Index;
