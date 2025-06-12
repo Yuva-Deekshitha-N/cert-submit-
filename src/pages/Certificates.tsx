@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Check, Search, Calendar, Download } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AuthContext } from "@/context/AuthContext";
+import axios from "axios";
 
-// Tailwind-safe status color classes
 const getColorClasses = (status: string) => {
   switch (status) {
     case "Completed":
@@ -28,7 +29,6 @@ const getColorClasses = (status: string) => {
         bg: "bg-green-100",
         text: "text-green-800",
       };
-    case "Submitted":
     case "In Progress":
       return {
         border: "border-blue-500",
@@ -36,17 +36,10 @@ const getColorClasses = (status: string) => {
         text: "text-blue-800",
       };
     case "Pending":
-    case "Yet to submit":
       return {
         border: "border-orange-500",
         bg: "bg-orange-100",
         text: "text-orange-800",
-      };
-    case "Not Started":
-      return {
-        border: "border-gray-400",
-        bg: "bg-gray-100",
-        text: "text-gray-800",
       };
     default:
       return {
@@ -64,10 +57,9 @@ const mockCertificates = [
     status: "Completed",
     dueDate: "Submitted",
     priority: "low",
-    description:
-      "A certificate that confirms your status as a bonafide student of the university.",
+    description: "A certificate that confirms your status as a bonafide student of the university.",
     submissions: [
-      {date: "june", office: "Academic Section", status: "Approved" },
+      { date: "june", office: "Academic Section", status: "Approved" },
     ],
     url: "http://localhost:8000/uploads/sample-bonafide.pdf",
   },
@@ -75,20 +67,18 @@ const mockCertificates = [
     id: 2,
     name: "Examination Fee Receipt",
     status: "Completed",
-    dueDate: "june 2025",
+    dueDate: "June 2025",
     priority: "high",
-    description:
-      "Proof of payment for examination fees for the current semester.",
+    description: "Proof of payment for examination fees for the current semester.",
     submissions: [],
   },
   {
     id: 3,
     name: "Course Completion Certificate",
     status: "Completed",
-    dueDate: "june 2025",
+    dueDate: "June 2025",
     priority: "medium",
-    description:
-      "Certifies that you have completed all required courses for your degree program.",
+    description: "Certifies that you have completed all required courses for your degree program.",
     submissions: [
       {
         date: "june",
@@ -100,30 +90,30 @@ const mockCertificates = [
     id: 4,
     name: "Academic Transcript",
     status: "Completed",
-    dueDate: "june 2025",
+    dueDate: "June 2025",
     priority: "medium",
-    description:
-      "Official record of your academic performance including grades and credits earned.",
+    description: "Official record of your academic performance including grades and credits earned.",
     submissions: [],
   },
   {
     id: 5,
     name: "No Dues Certificate",
     status: "Completed",
-    dueDate: "june 2025",
+    dueDate: "June 2025",
     priority: "low",
-    description:
-      "Certifies that you have no outstanding dues with the university.",
+    description: "Certifies that you have no outstanding dues with the university.",
     submissions: [],
   },
-  
 ];
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState(mockCertificates);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/certificates")
+    if (!user) return;
+
+    fetch(`http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`)
       .then((res) => res.json())
       .then((backendData) => {
         const merged = [...mockCertificates, ...backendData];
@@ -132,7 +122,26 @@ const Certificates = () => {
       .catch((err) => {
         console.error("Error fetching backend certificates:", err);
       });
-  }, []);
+  }, [user]);
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      const response = await axios.patch(`http://localhost:8000/api/certificates/${id}/status`, {
+        status: newStatus,
+      });
+
+      if (response.status === 200) {
+        setCertificates((prev) =>
+          prev.map((cert) =>
+            cert._id === id || cert.id === id ? { ...cert, status: newStatus } : cert
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("\u274C Couldn't update status. Try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -140,17 +149,11 @@ const Certificates = () => {
       <main className="flex-grow bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold">
-              Certificate Management
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Certificate Management</h1>
             <div className="mt-4 md:mt-0 flex space-x-4">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  type="search"
-                  placeholder="Search certificates..."
-                  className="pl-8 w-[200px] md:w-[300px]"
-                />
+                <Input type="search" placeholder="Search certificates..." className="pl-8 w-[200px] md:w-[300px]" />
               </div>
               <Button asChild className="bg-maroon-700 hover:bg-maroon-800">
                 <Link to="/certificates/upload">Upload New</Link>
@@ -171,49 +174,44 @@ const Certificates = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {certificates
                     .filter((cert) => {
-                      if (tab === "completed")
-                        return cert.status === "Completed";
-                      if (tab === "pending")
-                        return [
-                          "Pending",
-                          "Yet to submit",
-                          "Submitted",
-                          "In Progress",
-                        ].includes(cert.status);
-                      if (tab === "upcoming")
-                        return cert.status !== "Completed";
+                      if (tab === "completed") return cert.status === "Completed";
+                      if (tab === "pending") return ["Pending", "In Progress"].includes(cert.status);
+                      if (tab === "upcoming") return cert.status !== "Completed";
                       return true;
                     })
                     .map((certificate, index) => {
                       const color = getColorClasses(certificate.status);
                       return (
-                        <Card
-                          key={`${certificate.name}-${index}`}
-                          className={`overflow-hidden border-t-4 ${color.border}`}
-                        >
+                        <Card key={`${certificate.name}-${index}`} className={`overflow-hidden border-t-4 ${color.border}`}>
                           <CardHeader>
                             <div className="flex justify-between items-start">
-                              <CardTitle className="text-lg">
-                                {certificate.name}
-                              </CardTitle>
-                              <div
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}
-                              >
-                                {certificate.status}
-                              </div>
+                              <CardTitle className="text-lg">{certificate.name}</CardTitle>
+                              {index < 5 ? (
+                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
+                                  {certificate.status}
+                                </div>
+                              ) : (
+                                <select
+                                  value={certificate.status}
+                                  onChange={(e) =>
+                                    handleStatusChange(certificate._id || certificate.id, e.target.value)
+                                  }
+                                  className={`text-xs px-2 py-1 rounded border ${color.border} ${color.bg} ${color.text}`}
+                                >
+                                  {["Completed", "In Progress", "Pending"].map((option) => (
+                                    <option key={option} value={option}>{option}</option>
+                                  ))}
+                                </select>
+                              )}
                             </div>
-                            <CardDescription>
-                              {certificate.description}
-                            </CardDescription>
+                            <CardDescription>{certificate.description}</CardDescription>
                           </CardHeader>
 
                           <CardContent>
                             <div className="space-y-4">
                               <div className="flex items-center text-sm">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                <span className="text-muted-foreground">
-                                  {certificate.dueDate}
-                                </span>
+                                <span className="text-muted-foreground">{certificate.dueDate}</span>
                               </div>
 
                               {certificate.status === "Completed" ? (
@@ -224,12 +222,7 @@ const Certificates = () => {
                                   </div>
                                   {certificate.url ? (
                                     <Button asChild variant="outline" size="sm">
-                                      <a
-                                        href={certificate.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center"
-                                      >
+                                      <a href={certificate.url} target="_blank" rel="noopener noreferrer" className="flex items-center">
                                         <Download className="h-3 w-3 mr-1" />
                                         Download
                                       </a>
@@ -249,9 +242,7 @@ const Certificates = () => {
                                       : "No submissions yet"}
                                   </span>
                                   <Button asChild variant="secondary" size="sm">
-                                    <Link to={`/certificates/${certificate.id}`}>
-                                      View Details
-                                    </Link>
+                                    <Link to={`/certificates/${certificate._id || certificate.id}`}>View Details</Link>
                                   </Button>
                                 </div>
                               )}

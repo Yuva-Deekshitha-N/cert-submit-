@@ -50,7 +50,7 @@ mongoose
 
 // Mongoose schema & model
 const certificateSchema = new mongoose.Schema({
-  studentId: String,
+  studentEmail: String,
   name: String,
   status: String,
   dueDate: String,
@@ -66,13 +66,15 @@ const certificateSchema = new mongoose.Schema({
   ],
 });
 
+
 const Certificate = mongoose.model("Certificate", certificateSchema);
 
 // Upload certificate route
 app.post("/api/certificates/upload", upload.single("certificate"), async (req, res) => {
   console.log("🔔 Upload endpoint hit");
 
-  const { studentId, certStatus, certificateName } = req.body;
+  const { studentEmail, certStatus, certificateName } = req.body;
+
   const file = req.file;
 
   if (!file) {
@@ -82,7 +84,7 @@ app.post("/api/certificates/upload", upload.single("certificate"), async (req, r
 
   const fileUrl = `http://localhost:${PORT}/uploads/${file.filename}`;
   const certificate = new Certificate({
-    studentId,
+    studentEmail,
     name: certificateName || file.originalname,
     status: certStatus,
     dueDate: `Submitted on ${new Date().toDateString()}`,
@@ -117,6 +119,40 @@ app.get("/api/certificates", async (req, res) => {
     res.status(500).json({ message: "Failed to fetch certificates" });
   }
 });
+
+app.get("/api/certificates/:email", async (req, res) => {
+  const { email } = req.params;
+  try {
+    const certificates = await Certificate.find({ studentEmail: email });
+    res.json(certificates);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch certificates" });
+  }
+});
+
+// Update certificate status by ID
+app.patch("/api/certificates/:id/status", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const updated = await Certificate.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Certificate not found" });
+    }
+
+    res.json({ success: true, message: "Status updated", certificate: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to update status" });
+  }
+});
+
+
 
 // Start server
 app.listen(PORT, () => {
