@@ -46,7 +46,7 @@ const Locations = () => {
       coordinates: { lat: 17.494080, lng: 78.3935626 },
       certificates: ["4th year graduation certificates like ODE.."],
       contact: "+91 40 2272 3042",
-      image: "https://media-hosting.imagekit.io/9a599ca3a39a4f7b/1.png?Expires=1839937009&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=UDaQgLtBHKs1Jyv72dN2R76zn6rwxROxs8nNMyTGEFQ96prOao-21sLE-DBzNazsoRLJ4I-HAPOG7~i9OLqmp0tcl7f~uk~UuA3wzqGwYBAjwLF73bDc0b2PpG6XuwNGbc3Tfrdc0Pf1ySNVJAdAyqnWWiKNBnOBg6JnjGj0bWlQtX6GJBTJQLltfIcQavoFNJLDP4EUKkMCOGTP6W434BEPGL1UziKwaG9VlDSVwHaqMQD80o4RENGOsF5ec2X87PCsng50BfejdmMq4dDLqA5zBbgZsc6Z12GE7a6m6riVLQndheClFdzbsI0sf-Z~AQdp-jOt26nj2majmw6~wA__"
+      image: "https://lh3.googleusercontent.com/gps-cs-s/AC9h4npWP3dk_bWpzMXS5HG7LcgirGAoz6-7sO6h3C2OVPcyP9C9j3-M07BCdtuVUp5QsIgYqUvGz899jW9GPikqXmkEnlPDXvz2vqoWCH_3fOz-fsf6mmRUCpqOttUdRXtjSK69PXs=w408-h306-k-no"
     },
     {
       id: 4,

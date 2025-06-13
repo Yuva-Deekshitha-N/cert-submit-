@@ -113,7 +113,7 @@ export function Navbar() {
               </>
             ) : (
               <Button variant="outline" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/register">Sign In</Link>
               </Button>
             )}
           </div>
