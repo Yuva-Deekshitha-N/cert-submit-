@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
 dotenv.config(); // Load .env file
+const Certificate = require('./models/Certificate');
 
 const app = express();
 const PORT = 8000;
@@ -18,7 +19,17 @@ if (!fs.existsSync(uploadsDir)) {
   console.log("📁 Created uploads directory");
 }
 
-app.use(cors());
+const certificateRoutes = require("./routes/certificateRoutes");
+
+// Add this line to use the route
+app.use("/api/certificates", certificateRoutes);
+
+
+app.use(cors({
+  origin: "http://localhost:8080",
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Serve uploaded files statically
@@ -48,32 +59,15 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// Mongoose schema & model
-const certificateSchema = new mongoose.Schema({
-  studentEmail: String,
-  name: String,
-  status: String,
-  dueDate: String,
-  priority: String,
-  description: String,
-  url: String,
-  submissions: [
-    {
-      date: String,
-      office: String,
-      status: String,
-    },
-  ],
-});
-
-
-const Certificate = mongoose.model("Certificate", certificateSchema);
 
 // Upload certificate route
 app.post("/api/certificates/upload", upload.single("certificate"), async (req, res) => {
   console.log("🔔 Upload endpoint hit");
 
   const { studentEmail, certStatus, certificateName } = req.body;
+  
+  console.log("📝 Certificate name received:", certificateName);
+
 
   const file = req.file;
 
@@ -152,6 +146,18 @@ app.patch("/api/certificates/:id/status", async (req, res) => {
   }
 });
 
+app.delete("/api/certificates/:id", async (req, res) => {
+  try {
+    const deleted = await Certificate.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Certificate not found." });
+    }
+    res.status(200).json({ message: "✅ Certificate deleted." });
+  } catch (err) {
+    console.error("❌ Error deleting certificate:", err);
+    res.status(500).json({ message: "Failed to delete certificate." });
+  }
+});
 
 
 // Start server

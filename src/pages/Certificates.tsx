@@ -21,21 +21,22 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "@/context/AuthContext";
 import axios from "axios";
 
-const getColorClasses = (status: string) => {
-  switch (status) {
-    case "Completed":
+const getColorClasses = (status: string | undefined) => {
+  const normalized = status?.toLowerCase() || "";
+  switch (normalized) {
+    case "completed":
       return {
         border: "border-green-500",
         bg: "bg-green-100",
         text: "text-green-800",
       };
-    case "In Progress":
+    case "in progress":
       return {
         border: "border-blue-500",
         bg: "bg-blue-100",
         text: "text-blue-800",
       };
-    case "Pending":
+    case "pending":
       return {
         border: "border-orange-500",
         bg: "bg-orange-100",
@@ -50,58 +51,69 @@ const getColorClasses = (status: string) => {
   }
 };
 
+
 const mockCertificates = [
   {
+    _id: "Bonafide",
     id: 1,
     name: "Bonafide Certificate",
     status: "Completed",
     dueDate: "Submitted",
     priority: "low",
-    description: "A certificate that confirms your status as a bonafide student of the university.",
+    description:
+      "A certificate that confirms your status as a bonafide student of the university.",
     submissions: [
-      { date: "june", office: "Academic Section", status: "Approved" },
+      { date: "June", office: "Academic Section", status: "Approved" },
     ],
     url: "http://localhost:8000/uploads/sample-bonafide.pdf",
   },
   {
+    _id:"Examination Fee",
     id: 2,
     name: "Examination Fee Receipt",
     status: "Completed",
     dueDate: "June 2025",
     priority: "high",
-    description: "Proof of payment for examination fees for the current semester.",
+    description:
+      "Proof of payment for examination fees for the current semester.",
     submissions: [],
   },
   {
+    _id:"Course completion",
     id: 3,
     name: "Course Completion Certificate",
     status: "Completed",
     dueDate: "June 2025",
     priority: "medium",
-    description: "Certifies that you have completed all required courses for your degree program.",
+    description:
+      "Certifies that you have completed all required courses for your degree program.",
     submissions: [
       {
-        date: "june",
+        date: "June",
         office: "Examination Department",
       },
     ],
   },
   {
+    _id:"Academic",
     id: 4,
     name: "Academic Transcript",
     status: "Completed",
     dueDate: "June 2025",
     priority: "medium",
-    description: "Official record of your academic performance including grades and credits earned.",
+    description:
+      "Official record of your academic performance including grades and credits earned.",
     submissions: [],
   },
   {
+    _id:"no due",
     id: 5,
     name: "No Dues Certificate",
     status: "Completed",
     dueDate: "June 2025",
     priority: "low",
-    description: "Certifies that you have no outstanding dues with the university.",
+    description:
+      "Certifies that you have no outstanding dues with the university.",
     submissions: [],
   },
 ];
@@ -111,37 +123,77 @@ const Certificates = () => {
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    fetch(`http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`)
-      .then((res) => res.json())
-      .then((backendData) => {
-        const merged = [...mockCertificates, ...backendData];
-        setCertificates(merged);
-      })
-      .catch((err) => {
-        console.error("Error fetching backend certificates:", err);
-      });
-  }, [user]);
-
-  const handleStatusChange = async (id: string, newStatus: string) => {
-    try {
-      const response = await axios.patch(`http://localhost:8000/api/certificates/${id}/status`, {
-        status: newStatus,
-      });
-
-      if (response.status === 200) {
-        setCertificates((prev) =>
-          prev.map((cert) =>
-            cert._id === id || cert.id === id ? { ...cert, status: newStatus } : cert
+  axios
+    .get(`http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`)
+    .then((res) => {
+      const backendData = res.data || [];
+      const merged = [
+        ...mockCertificates,
+        ...backendData
+          .filter(
+            (b: any) =>
+              !mockCertificates.some(
+                (m) => m.name.toLowerCase() === b.certificateName?.toLowerCase()
+              )
           )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("\u274C Couldn't update status. Try again.");
+          .map((b: any) => ({
+            _id: b._id,
+            name: b.name || b.certificateName,
+            status: b.status || b.certStatus,
+            dueDate: "Uploaded",
+            description: "Uploaded by student.",
+            submissions: [],
+            url: b.url,
+          })),
+      ];
+      setCertificates(merged);
+    })
+    .catch((err) => {
+      console.error("Error fetching backend certificates:", err);
+    });
+}, [user]);
+
+const handleStatusChange = async (id: string, newStatus: string) => {
+  try {
+    const response = await axios.patch(
+      `http://localhost:8000/api/certificates/${id}/status`,
+      { status: newStatus }
+    );
+
+    if (response.status === 200) {
+      setCertificates((prev) =>
+        prev.map((cert) =>
+          (cert._id ?? cert.id)?.toString() === id.toString()
+            ? { ...cert, status: newStatus }
+            : cert
+        )
+      );
     }
-  };
+  } catch (error) {
+    console.error("Failed to update status:", error);
+    alert("❌ Couldn't update status. Try again.");
+  }
+};
+
+const handleDelete = async (id: string) => {
+  if (!window.confirm("Are you sure you want to delete this certificate?")) return;
+
+  try {
+    const res = await axios.delete(`http://localhost:8000/api/certificates/${id}`);
+    if (res.status === 200) {
+      setCertificates((prev) =>
+        prev.filter((cert) => (cert._id ?? cert.id)?.toString() !== id.toString())
+      );
+    }
+  } catch (err) {
+    console.error("❌ Error deleting certificate:", err);
+    alert("Failed to delete certificate.");
+  }
+};
+
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -149,11 +201,17 @@ const Certificates = () => {
       <main className="flex-grow bg-gray-50 py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold">Certificate Management</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">
+              Certificate Management
+            </h1>
             <div className="mt-4 md:mt-0 flex space-x-4">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input type="search" placeholder="Search certificates..." className="pl-8 w-[200px] md:w-[300px]" />
+                <Input
+                  type="search"
+                  placeholder="Search certificates..."
+                  className="pl-8 w-[200px] md:w-[300px]"
+                />
               </div>
               <Button asChild className="bg-maroon-700 hover:bg-maroon-800">
                 <Link to="/certificates/upload">Upload New</Link>
@@ -174,44 +232,65 @@ const Certificates = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {certificates
                     .filter((cert) => {
-                      if (tab === "completed") return cert.status === "Completed";
-                      if (tab === "pending") return ["Pending", "In Progress"].includes(cert.status);
-                      if (tab === "upcoming") return cert.status !== "Completed";
+                      const status = cert.status;
+                      if (tab === "completed") return status === "Completed";
+                      if (tab === "pending")
+                        return status === "Pending" || status === "In Progress";
+                      if (tab === "upcoming") return status !== "Completed";
                       return true;
                     })
                     .map((certificate, index) => {
                       const color = getColorClasses(certificate.status);
+                      
                       return (
-                        <Card key={`${certificate.name}-${index}`} className={`overflow-hidden border-t-4 ${color.border}`}>
+                        <Card
+                          key={`${certificate.name}-${index}`}
+                          className={`overflow-hidden border-t-4 ${color.border}`}
+                        >
                           <CardHeader>
                             <div className="flex justify-between items-start">
-                              <CardTitle className="text-lg">{certificate.name}</CardTitle>
-                              {index < 5 ? (
-                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}>
-                                  {certificate.status}
-                                </div>
-                              ) : (
+                              <CardTitle className="text-lg">
+                                {certificate.name}
+                              </CardTitle>
+                              {certificate._id ?? certificate.id ? (
                                 <select
                                   value={certificate.status}
                                   onChange={(e) =>
-                                    handleStatusChange(certificate._id || certificate.id, e.target.value)
+                                    handleStatusChange(
+                                      certificate._id.toString(),
+                                      e.target.value
+                                    )
                                   }
                                   className={`text-xs px-2 py-1 rounded border ${color.border} ${color.bg} ${color.text}`}
                                 >
-                                  {["Completed", "In Progress", "Pending"].map((option) => (
-                                    <option key={option} value={option}>{option}</option>
-                                  ))}
+                                  {["Completed", "In Progress", "Pending"].map(
+                                    (option) => (
+                                      <option key={option} value={option}>
+                                        {option}
+                                      </option>
+                                    )
+                                  )}
                                 </select>
+                              ) : (
+                                <div
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${color.bg} ${color.text}`}
+                                >
+                                  {certificate.status}
+                                </div>
                               )}
                             </div>
-                            <CardDescription>{certificate.description}</CardDescription>
+                            <CardDescription>
+                              {certificate.description}
+                            </CardDescription>
                           </CardHeader>
 
                           <CardContent>
                             <div className="space-y-4">
                               <div className="flex items-center text-sm">
                                 <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                                <span className="text-muted-foreground">{certificate.dueDate}</span>
+                                <span className="text-muted-foreground">
+                                  {certificate.dueDate}
+                                </span>
                               </div>
 
                               {certificate.status === "Completed" ? (
@@ -222,7 +301,12 @@ const Certificates = () => {
                                   </div>
                                   {certificate.url ? (
                                     <Button asChild variant="outline" size="sm">
-                                      <a href={certificate.url} target="_blank" rel="noopener noreferrer" className="flex items-center">
+                                      <a
+                                        href={certificate.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center"
+                                      >
                                         <Download className="h-3 w-3 mr-1" />
                                         Download
                                       </a>
@@ -234,6 +318,7 @@ const Certificates = () => {
                                     </Button>
                                   )}
                                 </div>
+                                
                               ) : (
                                 <div className="flex justify-between items-center">
                                   <span className="text-sm text-muted-foreground">
@@ -242,11 +327,28 @@ const Certificates = () => {
                                       : "No submissions yet"}
                                   </span>
                                   <Button asChild variant="secondary" size="sm">
-                                    <Link to={`/certificates/${certificate._id || certificate.id}`}>View Details</Link>
+                                    <Link
+                                      to={`/certificates/${
+                                        certificate._id || certificate.id
+                                      }`}
+                                    >
+                                      View Details
+                                    </Link>
                                   </Button>
                                 </div>
                               )}
                             </div>
+                            {certificate._id && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDelete(certificate._id.toString())}
+                                className="mt-2"
+                              >
+                                Delete
+                              </Button>
+                            )}
+
                           </CardContent>
                         </Card>
                       );

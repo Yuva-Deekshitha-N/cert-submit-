@@ -38,7 +38,7 @@ function StatusIcon({ status }: { status: string }) {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [certificates, setCertificates] = useState([]);
+  const [certificates, setCertificates] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<string[]>([]);
 
   useEffect(() => {
@@ -47,14 +47,18 @@ const Dashboard = () => {
       navigate("/login");
     } else {
       fetch(`http://localhost:8000/api/certificates/${studentEmail}`)
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`Server error: ${res.status}`);
+          const data = await res.json();
+          return Array.isArray(data) ? data : [];
+        })
         .then((data) => {
           setCertificates(data);
           setLoading(false);
 
-          const completed = data.filter(c => c.status.toLowerCase() === STATUS.COMPLETED).length;
-          const pending = data.filter(c => c.status.toLowerCase() === STATUS.PENDING).length;
-          const inprogress = data.filter(c => c.status.toLowerCase() === STATUS.IN_PROGRESS).length;
+          const completed = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+          const pending = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+          const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
 
           const notif: string[] = [];
           if (completed) notif.push(`${completed} certificates marked as Completed.`);
@@ -66,11 +70,11 @@ const Dashboard = () => {
           localStorage.setItem("notifications", JSON.stringify(updated));
           setNotifications(updated);
 
-          // Toast messages
           notif.forEach((n) => toast(n));
         })
         .catch((err) => {
           console.error("Failed to fetch certificates:", err);
+          setCertificates([]);
           setLoading(false);
         });
     }
@@ -84,24 +88,29 @@ const Dashboard = () => {
     );
   }
 
-  const completedCount = certificates.filter(c => c.status.toLowerCase() === STATUS.COMPLETED).length;
-  const inProgressCount = certificates.filter(c => c.status.toLowerCase() === STATUS.IN_PROGRESS).length;
-  const pendingCount = certificates.filter(c => c.status.toLowerCase() === STATUS.PENDING).length;
+  const completedCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+  const inProgressCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+  const pendingCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
   const progressPercentage = certificates.length ? (completedCount / certificates.length) * 100 : 0;
 
   const deadlines = certificates
-    .filter(c => c.status.toLowerCase() !== STATUS.COMPLETED && c.dueDate !== "Submitted")
+    .filter(c => c.status?.toLowerCase() !== STATUS.COMPLETED && c.dueDate && c.dueDate !== "Submitted")
     .map(c => {
       const dueDate = new Date(c.dueDate);
       const today = new Date();
       const daysLeft = Math.max(0, Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24)));
-      return { id: c.id, name: c.name, date: dueDate.toDateString(), daysLeft };
+      return {
+        id: c._id?.toString() || c.id?.toString() || c.name,
+        name: c.name,
+        date: dueDate.toDateString(),
+        daysLeft
+      };
     })
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar>
+    <Navbar>
         <div className="ml-auto relative">
           <Button variant="ghost" className="relative">
             <Bell className="h-5 w-5" />
@@ -112,12 +121,14 @@ const Dashboard = () => {
               {notifications.length === 0 ? (
                 <li className="p-2 text-xs text-gray-500">No recent activity</li>
               ) : (
-                notifications.map((msg, idx) => <li key={idx} className="p-2 text-sm border-b text-gray-700">{msg}</li>)
+                notifications.map((msg, idx) => (
+                  <li key={idx} className="p-2 text-sm border-b text-gray-700">{msg}</li>
+                ))
               )}
             </ul>
           </div>
         </div>
-      </Navbar>
+    </Navbar>
 
       <main className="flex-grow bg-gray-50 py-8">
         <div className="container mx-auto px-4">
@@ -137,7 +148,11 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             {[{
               title: "Overall Progress",
-              content: <><div className="text-2xl font-bold">{completedCount}/{certificates.length}</div><Progress value={progressPercentage} className="h-2 mt-2" /><p className="text-xs text-muted-foreground mt-2">Certificates completed</p></>
+              content: <>
+                <div className="text-2xl font-bold">{completedCount}/{certificates.length}</div>
+                <Progress value={progressPercentage} className="h-2 mt-2" />
+                <p className="text-xs text-muted-foreground mt-2">Certificates completed</p>
+              </>
             }, {
               title: "Completed",
               icon: <CheckCircle className="h-5 w-5 text-green-500 mr-2" />,
@@ -159,7 +174,12 @@ const Dashboard = () => {
                   <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {card.content ?? <div className="flex items-center">{card.icon}<div className="text-2xl font-bold">{card.count}</div></div>}
+                  {card.content ?? (
+                    <div className="flex items-center">
+                      {card.icon}
+                      <div className="text-2xl font-bold">{card.count}</div>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-2">{card.desc}</p>
                 </CardContent>
               </Card>
@@ -208,12 +228,12 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground">No certificates found.</p>
                   ) : (
                     certificates.map((c) => (
-                      <div key={c.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div key={c._id?.toString() || c.id?.toString() || c.name} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center space-x-4">
                           <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            c.status.toLowerCase() === STATUS.COMPLETED
+                            c.status?.toLowerCase() === STATUS.COMPLETED
                               ? "bg-green-100 text-green-700"
-                              : c.status.toLowerCase() === STATUS.IN_PROGRESS
+                              : c.status?.toLowerCase() === STATUS.IN_PROGRESS
                               ? "bg-blue-100 text-blue-700"
                               : "bg-red-100 text-red-700"
                           }`}>
@@ -224,7 +244,7 @@ const Dashboard = () => {
                             <p className="text-sm text-muted-foreground">Due: {c.dueDate}</p>
                           </div>
                         </div>
-                        <Link to={`/certificates/${c.id}`} className="text-sm text-blue-600 hover:underline">
+                        <Link to={`/certificates/${c._id || c.id}`} className="text-sm text-blue-600 hover:underline">
                           View Details
                         </Link>
                       </div>

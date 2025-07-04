@@ -1,9 +1,9 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext"; // ✅ Import AuthContext hook
-import { useToast } from "@/components/ui/use-toast"; // 👈 Add this
-
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import { uploadCertificate } from "@/api/certificateApi"; // ✅ Now uses API function
+import axios from "axios";
 
 export default function UploadCertificate() {
   const [file, setFile] = useState<File | null>(null);
@@ -13,9 +13,8 @@ export default function UploadCertificate() {
   const [loading, setLoading] = useState(false);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { user } = useAuth(); // ✅ Get the logged-in user
-  const { toast } = useToast(); // 👈 Add this
-
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -27,50 +26,49 @@ export default function UploadCertificate() {
       setFilePreview(null);
     }
   };
+  const [name, setName] = useState("");
 
-async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
 
-  if (!file) {
-    setMessage("❗ Please choose a file first.");
-    return;
-  }
+    if (!file) {
+      setMessage("❗ Please choose a file first.");
+      return;
+    }
 
-  if (!user?.email) {
-    setMessage("❗ User not logged in.");
-    return;
-  }
+    if (!user?.email) {
+      setMessage("❗ User not logged in.");
+      return;
+    }
 
-  try {
-    setLoading(true);
-    setMessage("");
 
-    const formData = new FormData();
-    formData.append("certificate", file);
-    formData.append("studentEmail", user?.email || "");
-    formData.append("certStatus", certStatus);
-    formData.append("certificateName", certificateName);
+    try {
+      setLoading(true);
+      setMessage("");
 
-    const response = await axios.post(
-      "http://localhost:8000/api/certificates/upload",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+      const formData = new FormData();
+      formData.append("certificate", file);
+      formData.append("studentEmail", user.email);
+      formData.append("certStatus", certStatus);
+      formData.append("name", name);
 
-    if (response.status === 200) {
+      axios.post("http://localhost:8000/api/certificates/upload", formData)
+        .then((res) => {
+          console.log("✅ Uploaded:", res.data);
+      })
+        .catch((err) => {
+          console.error("❌ Upload failed:", err);
+      });
+
+      const response = await uploadCertificate(formData); // ✅ Uses API call
+
       setMessage("✅ Certificate uploaded successfully!");
       console.log("Server response:", response.data);
 
-      // ✅ Add to localStorage
       const notifications = JSON.parse(localStorage.getItem("notifications") || "[]");
       notifications.unshift(`${certificateName} uploaded successfully`);
       localStorage.setItem("notifications", JSON.stringify(notifications));
 
-      // ✅ Show toast popup
       toast({
         title: "✅ Upload Successful",
         description: `${certificateName} has been uploaded successfully.`,
@@ -78,19 +76,13 @@ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
       });
 
       navigate("/certificates");
-    } else {
-      console.error("Unexpected server response:", response);
-      setMessage("❌ Upload failed. Unexpected server response.");
+    } catch (err: any) {
+      console.error("Upload error:", err.response?.data || err.message || err);
+      setMessage("❌ Upload failed. Try again.");
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    console.error("Upload error:", err.response ? err.response.data : err.message || err);
-    setMessage("❌ Upload failed. Try again.");
-  } finally {
-    setLoading(false);
   }
-}
-
-
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
@@ -106,8 +98,8 @@ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         <input
           type="text"
           placeholder="Certificate Name"
-          value={certificateName}
-          onChange={(e) => setCertificateName(e.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="border p-2 rounded"
           required
         />
@@ -122,7 +114,6 @@ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
           <option value="Pending">Pending</option>
         </select>
 
-        {/* Status Preview Badge */}
         <div className="text-sm">
           <span
             className={`inline-block px-3 py-1 rounded-full font-medium
