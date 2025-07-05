@@ -52,14 +52,7 @@ export default function UploadCertificate() {
       formData.append("certStatus", certStatus);
       formData.append("name", name);
 
-      axios.post("http://localhost:8000/api/certificates/upload", formData)
-        .then((res) => {
-          console.log("✅ Uploaded:", res.data);
-      })
-        .catch((err) => {
-          console.error("❌ Upload failed:", err);
-      });
-
+      
       const response = await uploadCertificate(formData); // ✅ Uses API call
 
       setMessage("✅ Certificate uploaded successfully!");

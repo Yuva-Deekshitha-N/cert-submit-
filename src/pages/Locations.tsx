@@ -46,7 +46,7 @@ const Locations = () => {
       coordinates: { lat: 17.494080, lng: 78.3935626 },
       certificates: ["4th year graduation certificates like ODE.."],
       contact: "+91 40 2272 3042",
-      image: "https://lh3.googleusercontent.com/gps-cs-s/AC9h4npWP3dk_bWpzMXS5HG7LcgirGAoz6-7sO6h3C2OVPcyP9C9j3-M07BCdtuVUp5QsIgYqUvGz899jW9GPikqXmkEnlPDXvz2vqoWCH_3fOz-fsf6mmRUCpqOttUdRXtjSK69PXs=w408-h306-k-no"
+      image: "https://lh3.googleusercontent.com/gps-cs-s/AC9h4npeeV-ppq8DGT7m3YtRvQ3hPwstXqAfkP1rkqJ9ADO5DUXdj6_KQC5UZPgSb0LD-LoLiLiPJRWn3UAdnlvaH50sKjnujtgOb5XE4Z4EbppCQfcRegfVYhBQerLtTZExuYQf77c=w408-h306-k-no"
     },
     {
       id: 4,

@@ -125,34 +125,40 @@ const Certificates = () => {
   useEffect(() => {
   if (!user) return;
 
-  axios
-    .get(`http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`)
-    .then((res) => {
+  const fetchCertificates = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`
+      );
       const backendData = res.data || [];
-      const merged = [
-        ...mockCertificates,
-        ...backendData
-          .filter(
-            (b: any) =>
-              !mockCertificates.some(
-                (m) => m.name.toLowerCase() === b.certificateName?.toLowerCase()
-              )
+
+      const backendCertificates = backendData.map((b: any) => ({
+        _id: b._id,
+        name: b.name || b.certificateName,
+        status: b.status || b.certStatus || "Pending",
+        dueDate: "Uploaded",
+        description: "Uploaded by student.",
+        submissions: [],
+        url: b.url,
+      }));
+
+      // Filter out mocks that already exist in backend by name (case-insensitive)
+      const filteredMockCertificates = mockCertificates.filter(
+        (mock) =>
+          !backendCertificates.some(
+            (backend) =>
+              backend.name.trim().toLowerCase() === mock.name.trim().toLowerCase()
           )
-          .map((b: any) => ({
-            _id: b._id,
-            name: b.name || b.certificateName,
-            status: b.status || b.certStatus,
-            dueDate: "Uploaded",
-            description: "Uploaded by student.",
-            submissions: [],
-            url: b.url,
-          })),
-      ];
+      );
+
+      const merged = [...filteredMockCertificates, ...backendCertificates];
       setCertificates(merged);
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error("Error fetching backend certificates:", err);
-    });
+    }
+  };
+
+  fetchCertificates();
 }, [user]);
 
 const handleStatusChange = async (id: string, newStatus: string) => {
