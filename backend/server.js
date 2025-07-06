@@ -26,7 +26,7 @@ app.use("/api/certificates", certificateRoutes);
 
 
 app.use(cors({
-  origin: "http://localhost:8080",
+  origin: ["http://localhost:8080","https://cert-submit.vercel.app"],
   credentials: true,
 }));
 
@@ -76,7 +76,9 @@ app.post("/api/certificates/upload", upload.single("certificate"), async (req, r
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const fileUrl = `http://localhost:${PORT}/uploads/${file.filename}`;
+  const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+  const fileUrl = `${BASE_URL}/uploads/${file.filename}`;
+
   const certificate = new Certificate({
     studentEmail,
     name: certificateName || file.originalname,
