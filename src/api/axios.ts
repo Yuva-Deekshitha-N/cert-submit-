@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL || "https://cert-submit.onrender.com",
   withCredentials: true, // optional
 });
 
