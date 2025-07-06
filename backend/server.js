@@ -71,7 +71,7 @@ app.post("/api/certificates/upload", upload.single("certificate"), async (req, r
     return res.status(400).json({ message: "No file uploaded." });
   }
 
-  const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+  const BASE_URL = process.env.BASE_URL || `https://cert-submit.onrender.com`;
   const fileUrl = `${BASE_URL}/uploads/${file.filename}`;
 
   const certificate = new Certificate({
