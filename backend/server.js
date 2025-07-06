@@ -7,10 +7,10 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 
 dotenv.config(); // Load .env file
-const Certificate = require('./models/Certificate');
+const Certificate = require("./models/Certificate");
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, "uploads");
@@ -19,23 +19,23 @@ if (!fs.existsSync(uploadsDir)) {
   console.log("📁 Created uploads directory");
 }
 
-const certificateRoutes = require("./routes/certificateRoutes");
+// CORS config
+app.use(
+  cors({
+    origin: [
+      "https://cert-submit.vercel.app",
+      "http://localhost:5173",
+      "http://localhost:8080",
+    ],
+    credentials: true,
+  })
+);
 
-// Add this line to use the route
-app.use("/api/certificates", certificateRoutes);
-
-
-app.use(cors({
-  origin: ["https://cert-submit.vercel.app","http://localhost:8080"],
-  credentials: true,
-}));
-
+// Middleware
 app.use(express.json());
+app.use("/uploads", express.static(uploadsDir)); // Serve uploaded files
 
-// Serve uploaded files statically
-app.use("/uploads", express.static(uploadsDir));
-
-// Multer storage config
+// Multer config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -47,10 +47,10 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
 });
 
-// MongoDB connection
+// MongoDB connect
 mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
@@ -59,16 +59,11 @@ mongoose
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-
-// Upload certificate route
+// Upload certificate
 app.post("/api/certificates/upload", upload.single("certificate"), async (req, res) => {
   console.log("🔔 Upload endpoint hit");
 
   const { studentEmail, certStatus, certificateName } = req.body;
-  
-  console.log("📝 Certificate name received:", certificateName);
-
-
   const file = req.file;
 
   if (!file) {
@@ -116,6 +111,7 @@ app.get("/api/certificates", async (req, res) => {
   }
 });
 
+// Get certificates by student email
 app.get("/api/certificates/:email", async (req, res) => {
   const { email } = req.params;
   try {
@@ -126,7 +122,7 @@ app.get("/api/certificates/:email", async (req, res) => {
   }
 });
 
-// Update certificate status by ID
+// Update status
 app.patch("/api/certificates/:id/status", async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -148,6 +144,7 @@ app.patch("/api/certificates/:id/status", async (req, res) => {
   }
 });
 
+// Delete certificate
 app.delete("/api/certificates/:id", async (req, res) => {
   try {
     const deleted = await Certificate.findByIdAndDelete(req.params.id);
@@ -161,8 +158,7 @@ app.delete("/api/certificates/:id", async (req, res) => {
   }
 });
 
-
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
