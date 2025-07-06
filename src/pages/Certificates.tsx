@@ -67,7 +67,7 @@ const mockCertificates = [
     submissions: [
       { date: "June", office: "Academic Section", status: "Approved" },
     ],
-    url: "{API_URL}/uploads/sample-bonafide.pdf",
+    url: "${API_URL}/uploads/sample-bonafide.pdf",
   },
   {
     _id:"Examination Fee",

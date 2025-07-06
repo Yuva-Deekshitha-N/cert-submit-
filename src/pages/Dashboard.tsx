@@ -47,7 +47,7 @@ const Dashboard = () => {
     if (!studentEmail) {
       navigate("/login");
     } else {
-      fetch(`{API_URL}/api/certificates/${studentEmail}`)
+      fetch(`${API_URL}/api/certificates/${studentEmail}`)
         .then(async (res) => {
           if (!res.ok) throw new Error(`Server error: ${res.status}`);
           const data = await res.json();
