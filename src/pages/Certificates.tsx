@@ -128,8 +128,9 @@ const Certificates = () => {
   const fetchCertificates = async () => {
     try {
       const res = await axios.get(
-        `http://localhost:8000/api/certificates/${encodeURIComponent(user.email)}`
+  `       ${import.meta.env.VITE_API_URL}/api/certificates/${encodeURIComponent(user.email)}`
       );
+
       const backendData = res.data || [];
 
       const backendCertificates = backendData.map((b: any) => ({
@@ -164,9 +165,10 @@ const Certificates = () => {
 const handleStatusChange = async (id: string, newStatus: string) => {
   try {
     const response = await axios.patch(
-      `http://localhost:8000/api/certificates/${id}/status`,
-      { status: newStatus }
-    );
+  `${import.meta.env.VITE_API_URL}/api/certificates/${id}/status`,
+  { status: newStatus }
+);
+
 
     if (response.status === 200) {
       setCertificates((prev) =>
@@ -187,7 +189,7 @@ const handleDelete = async (id: string) => {
   if (!window.confirm("Are you sure you want to delete this certificate?")) return;
 
   try {
-    const res = await axios.delete(`http://localhost:8000/api/certificates/${id}`);
+    const res = await axios.delete(`${import.meta.env.VITE_API_URL}/api/certificates/${id}`);
     if (res.status === 200) {
       setCertificates((prev) =>
         prev.filter((cert) => (cert._id ?? cert.id)?.toString() !== id.toString())
