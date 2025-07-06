@@ -26,7 +26,7 @@ app.use("/api/certificates", certificateRoutes);
 
 
 app.use(cors({
-  origin: ["http://localhost:8080","https://cert-submit.vercel.app"],
+  origin: ["https://cert-submit.vercel.app","http://localhost:8080"],
   credentials: true,
 }));
 

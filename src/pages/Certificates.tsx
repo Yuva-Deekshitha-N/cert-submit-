@@ -20,6 +20,8 @@ import { Check, Search, Calendar, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "@/context/AuthContext";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
+
 
 const getColorClasses = (status: string | undefined) => {
   const normalized = status?.toLowerCase() || "";
@@ -65,7 +67,7 @@ const mockCertificates = [
     submissions: [
       { date: "June", office: "Academic Section", status: "Approved" },
     ],
-    url: "http://localhost:8000/uploads/sample-bonafide.pdf",
+    url: "{API_URL}/uploads/sample-bonafide.pdf",
   },
   {
     _id:"Examination Fee",
@@ -128,7 +130,7 @@ const Certificates = () => {
   const fetchCertificates = async () => {
     try {
       const res = await axios.get(
-  `       ${import.meta.env.VITE_API_URL}/api/certificates/${encodeURIComponent(user.email)}`
+  `       ${API_URL}/api/certificates/${encodeURIComponent(user.email)}`
       );
 
       const backendData = res.data || [];
@@ -165,7 +167,7 @@ const Certificates = () => {
 const handleStatusChange = async (id: string, newStatus: string) => {
   try {
     const response = await axios.patch(
-  `${import.meta.env.VITE_API_URL}/api/certificates/${id}/status`,
+  `${API_URL}/api/certificates/${id}/status`,
   { status: newStatus }
 );
 
@@ -189,7 +191,7 @@ const handleDelete = async (id: string) => {
   if (!window.confirm("Are you sure you want to delete this certificate?")) return;
 
   try {
-    const res = await axios.delete(`${import.meta.env.VITE_API_URL}/api/certificates/${id}`);
+    const res = await axios.delete(`${API_URL}/api/certificates/${id}`);
     if (res.status === 200) {
       setCertificates((prev) =>
         prev.filter((cert) => (cert._id ?? cert.id)?.toString() !== id.toString())

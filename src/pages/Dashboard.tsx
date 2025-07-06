@@ -7,6 +7,7 @@ import { CheckCircle, Clock, AlertTriangle, MapPin, Calendar, Bell } from "lucid
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const STATUS = {
   COMPLETED: "completed",
@@ -46,7 +47,7 @@ const Dashboard = () => {
     if (!studentEmail) {
       navigate("/login");
     } else {
-      fetch(`http://localhost:8000/api/certificates/${studentEmail}`)
+      fetch(`{API_URL}/api/certificates/${studentEmail}`)
         .then(async (res) => {
           if (!res.ok) throw new Error(`Server error: ${res.status}`);
           const data = await res.json();
