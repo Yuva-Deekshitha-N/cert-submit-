@@ -2,19 +2,21 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
-import { uploadCertificate } from "@/api/certificateApi"; // ✅ Now uses API function
-import axios from "axios";
+import { uploadCertificate } from "@/api/certificateApi";
+import { useNotifications } from "@/context/NotificationContext";
+
 
 export default function UploadCertificate() {
   const [file, setFile] = useState<File | null>(null);
   const [certificateName, setCertificateName] = useState("");
-  const [certStatus, setCertStatus] = useState("Completed");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { addNotification } = useNotifications();
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -26,7 +28,6 @@ export default function UploadCertificate() {
       setFilePreview(null);
     }
   };
-  const [name, setName] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,7 +42,6 @@ export default function UploadCertificate() {
       return;
     }
 
-
     try {
       setLoading(true);
       setMessage("");
@@ -49,24 +49,33 @@ export default function UploadCertificate() {
       const formData = new FormData();
       formData.append("certificate", file);
       formData.append("studentEmail", user.email);
-      formData.append("certStatus", certStatus);
-      formData.append("name", name);
+      formData.append("name", certificateName);
+      formData.append("status", "Pending"); // Always default to "Pending" for students
 
-      
-      const response = await uploadCertificate(formData); // ✅ Uses API call
-
-      setMessage("✅ Certificate uploaded successfully!");
-      console.log("Server response:", response.data);
-
-      const notifications = JSON.parse(localStorage.getItem("notifications") || "[]");
-      notifications.unshift(`${certificateName} uploaded successfully`);
-      localStorage.setItem("notifications", JSON.stringify(notifications));
+      const response = await uploadCertificate(formData);
 
       toast({
         title: "✅ Upload Successful",
         description: `${certificateName} has been uploaded successfully.`,
         duration: 4000,
       });
+
+      // on success
+      addNotification(
+        `✅ "${certificateName}" uploaded successfully.`,
+        "success"
+      );
+
+      // on failure
+      addNotification(
+        `❌ Failed to upload "${certificateName}".`,
+        "warning"
+      );
+
+
+      setMessage("✅ Certificate uploaded successfully!");
+      console.log("Server response:", response.data);
+
 
       navigate("/certificates");
     } catch (err: any) {
@@ -91,37 +100,11 @@ export default function UploadCertificate() {
         <input
           type="text"
           placeholder="Certificate Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={certificateName}
+          onChange={(e) => setCertificateName(e.target.value)}
           className="border p-2 rounded"
           required
         />
-
-        <select
-          value={certStatus}
-          onChange={(e) => setCertStatus(e.target.value)}
-          className="border p-2 rounded bg-white"
-        >
-          <option value="Completed">Completed</option>
-          <option value="In progress">In progress</option>
-          <option value="Pending">Pending</option>
-        </select>
-
-        <div className="text-sm">
-          <span
-            className={`inline-block px-3 py-1 rounded-full font-medium
-              ${
-                certStatus === "Completed"
-                  ? "bg-green-100 text-green-700"
-                  : certStatus === "In progress"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-100 text-red-700"
-              }
-            `}
-          >
-            {certStatus}
-          </span>
-        </div>
 
         <input
           type="file"

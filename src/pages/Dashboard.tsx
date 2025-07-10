@@ -1,12 +1,14 @@
+// src/pages/Dashboard.tsx
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, AlertTriangle, MapPin, Calendar, Bell } from "lucide-react";
+import { CheckCircle, Clock, AlertTriangle, MapPin, Calendar } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useNotifications } from "@/context/NotificationContext";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const STATUS = {
@@ -30,7 +32,7 @@ const submissionCenters = [
 ];
 
 function StatusIcon({ status }: { status: string }) {
-  const normalized = status.toLowerCase();
+  const normalized = status?.toLowerCase() || "";
   if (normalized === STATUS.COMPLETED) return <CheckCircle className="h-5 w-5 text-green-700" />;
   if (normalized === STATUS.IN_PROGRESS) return <Clock className="h-5 w-5 text-blue-700" />;
   return <AlertTriangle className="h-5 w-5 text-red-700" />;
@@ -40,46 +42,39 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<string[]>([]);
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     const studentEmail = localStorage.getItem("studentEmail");
     if (!studentEmail) {
       navigate("/login");
-    } else {
-      fetch(`${API_URL}/api/certificates/${studentEmail}`)
-        .then(async (res) => {
-          if (!res.ok) throw new Error(`Server error: ${res.status}`);
-          const data = await res.json();
-          return Array.isArray(data) ? data : [];
-        })
-        .then((data) => {
-          setCertificates(data);
-          setLoading(false);
-
-          const completed = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-          const pending = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
-          const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
-
-          const notif: string[] = [];
-          if (completed) notif.push(`${completed} certificates marked as Completed.`);
-          if (inprogress) notif.push(`${inprogress} certificates are In Progress.`);
-          if (pending) notif.push(`${pending} certificates are Pending.`);
-
-          const existing = JSON.parse(localStorage.getItem("notifications") || "[]");
-          const updated = [...notif, ...existing].slice(0, 10);
-          localStorage.setItem("notifications", JSON.stringify(updated));
-          setNotifications(updated);
-
-          notif.forEach((n) => toast(n));
-        })
-        .catch((err) => {
-          console.error("Failed to fetch certificates:", err);
-          setCertificates([]);
-          setLoading(false);
-        });
+      return;
     }
-  }, [navigate]);
+
+    fetch(`${API_URL}/api/certificates/${studentEmail}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      })
+      .then((data) => {
+        setCertificates(data);
+        setLoading(false);
+
+        const completed = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+        const pending = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+        const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+
+        if (completed) addNotification(`${completed} certificates marked as Completed.`, "success");
+        if (inprogress) addNotification(`${inprogress} certificates are In Progress.`, "info");
+        if (pending) addNotification(`${pending} certificates are Pending.`, "warning");
+      })
+      .catch((err) => {
+        console.error("Failed to fetch certificates:", err);
+        setCertificates([]);
+        setLoading(false);
+      });
+  }, [navigate, addNotification]);
 
   if (loading) {
     return (
@@ -111,29 +106,9 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-    <Navbar>
-        <div className="ml-auto relative">
-          <Button variant="ghost" className="relative">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <div className="absolute right-0 mt-2 w-64 bg-white border rounded shadow-md z-10">
-            <div className="p-2 text-sm font-medium text-gray-700 border-b">Notifications</div>
-            <ul className="max-h-60 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <li className="p-2 text-xs text-gray-500">No recent activity</li>
-              ) : (
-                notifications.map((msg, idx) => (
-                  <li key={idx} className="p-2 text-sm border-b text-gray-700">{msg}</li>
-                ))
-              )}
-            </ul>
-          </div>
-        </div>
-    </Navbar>
-
+      <Navbar />
       <main className="flex-grow bg-gray-50 py-8">
         <div className="container mx-auto px-4">
-
           <div className="flex flex-col md:flex-row justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <div className="flex gap-2">
@@ -323,7 +298,6 @@ const Dashboard = () => {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   );

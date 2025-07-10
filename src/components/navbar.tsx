@@ -4,61 +4,40 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { Bell, UserCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { useNotifications } from "@/context/NotificationContext";
+import { useAuth } from "@/context/AuthContext";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
 export function Navbar() {
-  const [username, setUsername] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<string[]>([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user, logout } = useAuth();
+  const { notifications, markAllAsRead, clearNotifications } = useNotifications();
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const { toast } = useToast();
+  const location = useLocation();
 
-  // Sync username and notifications
-  useEffect(() => {
-    setUsername(localStorage.getItem("username"));
-    setNotifications(JSON.parse(localStorage.getItem("notifications") || "[]"));
-  }, []);
-
-  // Show dashboard notification on navigation
+  // ✅ Show toast on /dashboard load
   useEffect(() => {
     if (location.pathname === "/dashboard") {
-      const dashboardNotifs = JSON.parse(localStorage.getItem("dashboard-status") || "[]");
-      dashboardNotifs.forEach((msg: string) => {
+      notifications.filter((n) => !n.read).forEach((n) => {
         toast({
-          title: "📢 Status Update",
-          description: msg,
+          title: "📢 Notification",
+          description: n.message,
           duration: 5000,
         });
       });
+      markAllAsRead();
     }
-  }, [location.pathname, toast]);
-
-  // Click outside to close dropdown
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("username");
-    localStorage.removeItem("studentEmail");
-    setUsername(null);
-    navigate("/login");
-  };
+  }, [location.pathname]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+      <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="mr-6">
           <Logo />
         </Link>
+
         <nav className="hidden md:flex flex-1 items-center justify-between">
+          {/* Left Links */}
           <div className="flex items-center space-x-4">
             <Link to="/dashboard" className="text-sm font-medium transition-colors hover:text-maroon-700">
               Dashboard
@@ -74,40 +53,62 @@ export function Navbar() {
             </Link>
           </div>
 
+          {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {/* 🔔 Notifications */}
-            <div className="relative" ref={dropdownRef}>
-              <Button variant="ghost" size="icon" onClick={() => setShowDropdown((prev) => !prev)}>
-                <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-maroon-600 text-xs text-white flex items-center justify-center">
-                    {notifications.length}
-                  </span>
-                )}
-              </Button>
-              {showDropdown && (
-                <div className="absolute right-0 mt-2 w-64 bg-white shadow-lg border rounded-md z-50">
+            {/* 🔔 Notification Popover */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-600 text-xs text-white flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold">Notifications</span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                    <button
+                      onClick={clearNotifications}
+                      className="text-xs text-red-600 hover:underline"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                </div>
+                <div className="max-h-60 overflow-y-auto space-y-2">
                   {notifications.length === 0 ? (
-                    <p className="text-sm text-gray-500 p-4">No notifications</p>
+                    <p className="text-sm text-gray-500">No notifications</p>
                   ) : (
-                    <ul className="text-sm p-2 max-h-64 overflow-auto">
-                      {notifications.slice(0, 10).map((msg, i) => (
-                        <li key={i} className="p-2 border-b last:border-b-0">{msg}</li>
-                      ))}
-                    </ul>
+                    notifications.map((n,i) => (
+                      <li className="p-2 border-b last:border-b-0">
+                        {n.message}
+                      </li>
+                                  
+                    ))
                   )}
                 </div>
-              )}
-            </div>
+              </PopoverContent>
+            </Popover>
 
+            {/* 👤 User Info + Auth */}
             <Button variant="ghost" size="icon">
               <UserCircle className="h-5 w-5" />
             </Button>
 
-            {username ? (
+            {user ? (
               <>
-                <span className="text-sm font-medium">{username}</span>
-                <Button variant="outline" onClick={handleLogout}>
+                <span className="text-sm font-medium">{user.name}</span>
+                <Button variant="outline" onClick={logout}>
                   Logout
                 </Button>
               </>
@@ -119,6 +120,7 @@ export function Navbar() {
           </div>
         </nav>
 
+        {/* Mobile Right Section */}
         <div className="flex md:hidden flex-1 justify-end">
           <Button variant="outline" size="icon">
             <UserCircle className="h-5 w-5" />

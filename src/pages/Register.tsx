@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import GoogleLogin from "@/components/GoogleLogin"; // adjust path if needed
+import GoogleLogin from "@/components/GoogleLogin";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,10 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Logo } from "@/components/ui/logo";
-import { login } from "@/utils/auth"; // mock login
+import axios from "axios";
+import { useContext } from "react";
+import { AuthContext } from "@/context/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -34,28 +38,26 @@ const Register = () => {
     password: "",
     confirmPassword: "",
   });
+
   const [error, setError] = useState("");
 
-  // Handle Google login success
   const handleGoogleLogin = (user: { name: string; email: string; picture: string }) => {
     localStorage.setItem("username", user.name);
     localStorage.setItem("email", user.email);
-    login();
+    login(user);
     navigate("/dashboard", { replace: true });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.id]: e.target.value });
-  };
 
-  const handleSelectChange = (id: string, value: string) => {
+  const handleSelectChange = (id: string, value: string) =>
     setForm({ ...form, [id]: value });
-  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
 
-    // Basic validation
     if (
       !form.firstName ||
       !form.lastName ||
@@ -76,10 +78,26 @@ const Register = () => {
     }
 
     const fullName = `${form.firstName} ${form.lastName}`;
-    localStorage.setItem("username", fullName);
 
-    login();
-    navigate("/dashboard", { replace: true });
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/register`, {
+        name: fullName,
+        email: form.email,
+        password: form.password,
+      });
+
+      const { token, user } = res.data;
+
+      // Store in context (or localStorage)
+      login({ ...user, token });
+
+      // Navigate based on role
+      const target = user.role === "admin" ? "/admin-dashboard" : "/dashboard";
+      navigate(target, { replace: true });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Registration failed.";
+      setError(msg);
+    }
   };
 
   return (
@@ -107,51 +125,27 @@ const Register = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First name</Label>
-                  <Input
-                    id="firstName"
-                    value={form.firstName}
-                    onChange={handleChange}
-                    placeholder="John"
-                  />
+                  <Input id="firstName" value={form.firstName} onChange={handleChange} placeholder="John" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="lastName">Last name</Label>
-                  <Input
-                    id="lastName"
-                    value={form.lastName}
-                    onChange={handleChange}
-                    placeholder="Doe"
-                  />
+                  <Input id="lastName" value={form.lastName} onChange={handleChange} placeholder="Doe" />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="student@university.edu"
-                />
+                <Input id="email" type="email" value={form.email} onChange={handleChange} placeholder="student@university.edu" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="studentId">Student ID</Label>
-                <Input
-                  id="studentId"
-                  value={form.studentId}
-                  onChange={handleChange}
-                  placeholder="e.g., 23011A6603"
-                />
+                <Input id="studentId" value={form.studentId} onChange={handleChange} placeholder="e.g., 23011A6603" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="program">Program</Label>
-                <Select
-                  onValueChange={(value) => handleSelectChange("program", value)}
-                  value={form.program}
-                >
+                <Select onValueChange={(value) => handleSelectChange("program", value)} value={form.program}>
                   <SelectTrigger id="program">
                     <SelectValue placeholder="Select program" />
                   </SelectTrigger>
@@ -170,10 +164,7 @@ const Register = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="year">Year of Study</Label>
-                <Select
-                  onValueChange={(value) => handleSelectChange("year", value)}
-                  value={form.year}
-                >
+                <Select onValueChange={(value) => handleSelectChange("year", value)} value={form.year}>
                   <SelectTrigger id="year">
                     <SelectValue placeholder="Select year" />
                   </SelectTrigger>
@@ -188,22 +179,12 @@ const Register = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={form.password}
-                  onChange={handleChange}
-                />
+                <Input id="password" type="password" value={form.password} onChange={handleChange} />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                />
+                <Input id="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange} />
               </div>
 
               {error && <p className="text-red-600 text-sm">{error}</p>}

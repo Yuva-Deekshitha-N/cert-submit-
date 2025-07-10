@@ -7,15 +7,18 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Certificates from "./pages/Certificates";
-import UploadCertificate from "./pages/UploadCertificates";   // ← NEW
+import UploadCertificate from "./pages/UploadCertificates";
 import Locations from "./pages/Locations";
 import Chatbot from "./pages/Chatbot";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard"; // ✅ if you created this
 
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
+import { NotificationProvider } from "@/context/NotificationContext"; // ✅
+import Unauthorized from "@/pages/Unauthorized";
 
 const queryClient = new QueryClient();
 
@@ -24,62 +27,79 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* public pages */}
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
 
-            {/* protected pages */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/certificates"
-              element={
-                <ProtectedRoute>
-                  <Certificates />
-                </ProtectedRoute>
-              }
-            />
-            {/* upload form inside Certificates section */}
-            <Route
-              path="/certificates/upload"
-              element={
-                <ProtectedRoute>
-                  <UploadCertificate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/locations"
-              element={
-                <ProtectedRoute>
-                  <Locations />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/chatbot"
-              element={
-                <ProtectedRoute>
-                  <Chatbot />
-                </ProtectedRoute>
-              }
-            />
+      {/* 🔽 Wrap everything inside NotificationProvider and AuthProvider */}
+      <NotificationProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* public pages */}
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
 
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+              {/* protected routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/certificates"
+                element={
+                  <ProtectedRoute>
+                    <Certificates />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/certificates/upload"
+                element={
+                  <ProtectedRoute>
+                    <UploadCertificate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/locations"
+                element={
+                  <ProtectedRoute>
+                    <Locations />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chatbot"
+                element={
+                  <ProtectedRoute>
+                    <Chatbot />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin-dashboard"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/unauthorized" element={
+                  <ProtectedRoute>
+                    <Unauthorized />
+                  </ProtectedRoute>} />
+
+
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </NotificationProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

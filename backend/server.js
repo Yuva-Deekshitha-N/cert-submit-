@@ -1,3 +1,6 @@
+require('dotenv').config();
+
+
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
@@ -34,6 +37,7 @@ app.use(
 // Middleware
 app.use(express.json());
 app.use("/uploads", express.static(uploadsDir)); // Serve uploaded files
+app.use("/api/auth", require("./routes/authRoutes")); // ✅ Correct path to authRoutes.js
 
 // Multer config
 const storage = multer.diskStorage({

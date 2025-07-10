@@ -20,7 +20,22 @@ import { Check, Search, Calendar, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "@/context/AuthContext";
 import axios from "axios";
+import { useNotifications } from "@/context/NotificationContext";
+
 const API_URL = import.meta.env.VITE_API_URL;
+
+type Certificate = {
+  _id: string;
+  id?: number;
+  name: string;
+  status: string;
+  dueDate: string;
+  priority?: string;
+  description: string;
+  submissions?: { date: string; office?: string; status?: string }[];
+  url?: string;
+  feedback?: string; // ✅ Make feedback optional
+};
 
 
 const getColorClasses = (status: string | undefined) => {
@@ -68,6 +83,7 @@ const mockCertificates = [
       { date: "June", office: "Academic Section", status: "Approved" },
     ],
     url: "${API_URL}/uploads/sample-bonafide.pdf",
+    feedback: "Excellent work",
   },
   {
     _id:"Examination Fee",
@@ -79,6 +95,7 @@ const mockCertificates = [
     description:
       "Proof of payment for examination fees for the current semester.",
     submissions: [],
+    feedback: "",
   },
   {
     _id:"Course completion",
@@ -95,6 +112,7 @@ const mockCertificates = [
         office: "Examination Department",
       },
     ],
+    feedback: "",
   },
   {
     _id:"Academic",
@@ -106,6 +124,7 @@ const mockCertificates = [
     description:
       "Official record of your academic performance including grades and credits earned.",
     submissions: [],
+    feedback: "",
   },
   {
     _id:"no due",
@@ -117,12 +136,14 @@ const mockCertificates = [
     description:
       "Certifies that you have no outstanding dues with the university.",
     submissions: [],
+    feedback: "",
   },
 ];
 
 const Certificates = () => {
   const [certificates, setCertificates] = useState(mockCertificates);
   const { user } = useContext(AuthContext);
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
   if (!user) return;
@@ -143,7 +164,10 @@ const Certificates = () => {
         description: "Uploaded by student.",
         submissions: [],
         url: b.url,
+        feedback: b.feedback || "",
       }));
+      
+
 
       // Filter out mocks that already exist in backend by name (case-insensitive)
       const filteredMockCertificates = mockCertificates.filter(
@@ -180,6 +204,8 @@ const handleStatusChange = async (id: string, newStatus: string) => {
             : cert
         )
       );
+      addNotification(`📄 Certificate status changed to "${newStatus}"`, "info");
+      
     }
   } catch (error) {
     console.error("Failed to update status:", error);
@@ -196,6 +222,7 @@ const handleDelete = async (id: string) => {
       setCertificates((prev) =>
         prev.filter((cert) => (cert._id ?? cert.id)?.toString() !== id.toString())
       );
+      addNotification("🗑️ Certificate deleted successfully", "warning");
     }
   } catch (err) {
     console.error("❌ Error deleting certificate:", err);
@@ -302,6 +329,13 @@ const handleDelete = async (id: string) => {
                                   {certificate.dueDate}
                                 </span>
                               </div>
+
+                              {certificate.feedback && (
+                                <p className="text-sm text-blue-800 mt-2">
+                                  💬 Admin Feedback: {certificate.feedback}
+                                </p>
+                              )}
+
 
                               {certificate.status === "Completed" ? (
                                 <div className="flex justify-between items-center">

@@ -5,22 +5,25 @@ import React, {
   ReactNode,
   useContext,
 } from "react";
+import { jwtDecode } from "jwt-decode";
 
-// Define user type
+
+// ✅ Define user type (including role)
 type User = {
   name: string;
   email: string;
-  picture: string;
+  role: string;
+  token?: string;
 };
 
-// Define context type
+// ✅ Define context type
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
+  login: (token: string) => void;
   logout: () => void;
 }
 
-// Create the AuthContext with default values
+// ✅ Create the AuthContext with default values
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   login: () => {},
@@ -30,10 +33,11 @@ export const AuthContext = createContext<AuthContextType>({
 // ✅ Custom hook to use the context
 export const useAuth = () => useContext(AuthContext);
 
-// Provider component
+// ✅ Provider component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
+  // ✅ Restore user from localStorage on reload
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
@@ -41,27 +45,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const login = (userData: User) => {
-  setUser(userData);
-  localStorage.setItem("user", JSON.stringify(userData));
+  // ✅ New login function: accepts token and decodes role
+  const login = (token: string) => {
+    const decoded: any = jwtDecode(token);
+    const user = {
+      name: decoded.name,
+      email: decoded.email,
+      role: decoded.role,
+      token,
+    };
+    setUser(user);
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", token);
+  };
 
-  // ✅ Add these two lines to persist email and name
-  localStorage.setItem("studentEmail", userData.email);
-  localStorage.setItem("username", userData.name);
-};
-
-
+  // ✅ Logout clears state and localStorage
   const logout = () => {
-  setUser(null);
-  localStorage.removeItem("user");
-  localStorage.removeItem("studentEmail");
-  localStorage.removeItem("username");
+    setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("studentEmail");
+    localStorage.removeItem("username");
 
-  if (window.google && window.google.accounts) {
-    window.google.accounts.id.disableAutoSelect();
-  }
-};
-
+    if (window.google && window.google.accounts) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

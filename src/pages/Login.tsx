@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
+import axios from "axios";
+import { ADMIN_EMAILS } from "@/pages/AdminDashboard"; // Adjust path as needed
 
 const GOOGLE_ID = "319314674536-fq5ha9ltheldhm376k54keo35hhbdmfq.apps.googleusercontent.com";
 
@@ -21,19 +23,21 @@ const Login = () => {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
 
-  /* ---------- Google One-Tap ---------- */
   const googleDivRef = useRef<HTMLDivElement>(null);
 
-  /** stable callback passed to Google */
+  /** Handle Google One-Tap login */
   const handleCredential = useCallback((response: any) => {
-    const decoded: any = jwtDecode(response.credential);
-    login({ name: decoded.name, email: decoded.email, picture: decoded.picture });
-    navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    const token = response.credential;
+    login(token);
+
+    const decoded: any = jwtDecode(token);
+    const target = ADMIN_EMAILS.includes(decoded.email) ? "/admin-dashboard" : "/dashboard";
+
+    navigate(location.state?.from?.pathname || target, { replace: true });
   }, [login, navigate, location.state]);
 
-  /** load script once, then render button once */
   useEffect(() => {
-    if (!googleDivRef.current) return;            // div not in DOM yet
+    if (!googleDivRef.current) return;
 
     const inject = () => {
       // @ts-ignore
@@ -44,13 +48,11 @@ const Login = () => {
       });
     };
 
-    // If sdk already present just init
     if (window.google?.accounts?.id) {
       inject();
       return;
     }
 
-    // Otherwise add the script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -61,20 +63,38 @@ const Login = () => {
     return () => { document.body.removeChild(script); };
   }, [handleCredential]);
 
-  /* ---------- Email/password form ---------- */
+  /** Handle input field changes */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.id]: e.target.value });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  /** Handle email/password login */
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.email || !form.password) { setError("Please enter credentials."); return; }
+    setError("");
 
-    // TODO: replace with real auth
-    login({ name: form.email.split("@")[0], email: form.email, picture: "" });
-    navigate("/dashboard", { replace: true });
+    const { email, password } = form;
+
+    if (!email || !password) {
+      setError("Please enter credentials.");
+      return;
+    }
+
+    try {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, form);
+      const { token } = res.data;
+
+      login(token); // AuthContext will decode and store user
+
+      const decoded: any = jwtDecode(token);
+      const target = ADMIN_EMAILS.includes(decoded.email) ? "/admin-dashboard" : "/dashboard";
+
+      navigate(location.state?.from?.pathname || target, { replace: true });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || "Login failed.";
+      setError(msg);
+    }
   };
 
-  /* ---------- UI ---------- */
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">

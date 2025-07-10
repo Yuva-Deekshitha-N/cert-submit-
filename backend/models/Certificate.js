@@ -7,9 +7,23 @@ const SubmissionSchema = new mongoose.Schema({
 });
 
 const CertificateSchema = new mongoose.Schema({
-  studentEmail: String,
-  name: String,
-  status: String,
+  studentEmail: {
+    type: String,
+    required: true,
+  },
+  name: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["Pending", "Completed", "In Progress", "Rejected"],
+    default: "Pending",
+  },
+  feedback: {
+    type: String,
+    default: "",
+  },
   dueDate: String,
   priority: String,
   description: String,
@@ -17,8 +31,7 @@ const CertificateSchema = new mongoose.Schema({
   submissions: [SubmissionSchema],
 });
 
-
-// ✅ Prevent OverwriteModelError here
+// ✅ Prevent OverwriteModelError
 const Certificate =
   mongoose.models.Certificate || mongoose.model("Certificate", CertificateSchema);
 
