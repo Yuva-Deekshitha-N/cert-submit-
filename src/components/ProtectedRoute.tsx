@@ -1,19 +1,24 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-
-const isAuthenticated = (): boolean => {
-  return Boolean(localStorage.getItem("username"));
-};
+import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedRouteProps {
-  children: React.ReactElement;
+  children: JSX.Element;
+  requiredRole?: "admin" | "student";
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated()) {
-    return <Navigate to="/Register" state={{ from: location }} replace />;
+    // Redirect unauthenticated users to login
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (requiredRole && user?.role !== requiredRole) {
+    // Redirect to unauthorized if role doesn't match
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;
