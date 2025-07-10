@@ -27,14 +27,36 @@ const Login = () => {
 
   /** Handle Google One-Tap login */
   const handleCredential = useCallback((response: any) => {
-    const token = response.credential;
+  if (!response || !response.credential || typeof response.credential !== "string") {
+    console.error("❌ Invalid Google credential:", response);
+    return;
+  }
+
+  const token = response.credential;
+
+  try {
+    const decoded: any = jwtDecode(token);
+
+    if (!decoded?.email) {
+      console.error("❌ Token missing email field:", decoded);
+      return;
+    }
+
+    // First log in (store user & token)
     login(token);
 
-    const decoded: any = jwtDecode(token);
-    const target = ADMIN_EMAILS.includes(decoded.email) ? "/admin-dashboard" : "/dashboard";
+    // Redirect based on email
+    const target = ADMIN_EMAILS.includes(decoded.email)
+      ? "/admin-dashboard"
+      : "/dashboard";
 
     navigate(location.state?.from?.pathname || target, { replace: true });
-  }, [login, navigate, location.state]);
+
+  } catch (error) {
+    console.error("❌ Error decoding token:", error);
+  }
+}, [login, navigate, location.state]);
+
 
   useEffect(() => {
     if (!googleDivRef.current) return;

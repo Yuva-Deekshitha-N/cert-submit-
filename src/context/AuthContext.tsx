@@ -47,17 +47,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // ✅ New login function: accepts token and decodes role
   const login = (token: string) => {
-    const decoded: any = jwtDecode(token);
-    const user = {
-      name: decoded.name,
-      email: decoded.email,
-      role: decoded.role,
-      token,
+    try{
+      const decoded: any = jwtDecode(token);
+      const user = {
+        name: decoded.name,
+        email: decoded.email,
+        role: decoded.role,
+        token,
+      };
+      setUser(user);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", token);
+    }catch(error){
+      console.error("❌ Invalid token during login", error);
+    }
     };
-    setUser(user);
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("token", token);
-  };
 
   // ✅ Logout clears state and localStorage
   const logout = () => {
@@ -71,6 +75,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.google.accounts.id.disableAutoSelect();
     }
   };
+  
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
