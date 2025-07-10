@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import axios from "axios";
-import { ADMIN_EMAILS } from "@/constants";
+import { ADMIN_EMAILS } from "@/constants"; // Must be exported properly
 
 const GOOGLE_ID = "319314674536-fq5ha9ltheldhm376k54keo35hhbdmfq.apps.googleusercontent.com";
 
@@ -25,38 +25,37 @@ const Login = () => {
 
   const googleDivRef = useRef<HTMLDivElement>(null);
 
-  /** Handle Google One-Tap login */
+  /** ✅ Google One-Tap Login Handler */
   const handleCredential = useCallback((response: any) => {
-  if (!response || !response.credential || typeof response.credential !== "string") {
-    console.error("❌ Invalid Google credential:", response);
-    return;
-  }
-
-  try {
-    const token = response.credential;
-    const decoded: any = jwtDecode(token);
-
-    if (!decoded?.email) {
-      console.error("❌ Decoded token is missing email:", decoded);
+    if (!response || !response.credential || typeof response.credential !== "string") {
+      console.error("❌ Invalid Google credential:", response);
       return;
     }
 
-    login(token); // Store in localStorage
+    try {
+      const token = response.credential;
+      const decoded: any = jwtDecode(token);
 
-    const target = ADMIN_EMAILS.includes(decoded.email)
-      ? "/admin-dashboard"
-      : "/dashboard";
+      if (!decoded?.email) {
+        console.error("❌ Decoded token missing email:", decoded);
+        return;
+      }
 
-    navigate(location.state?.from?.pathname || target, { replace: true });
+      console.log("✅ Decoded Google token:", decoded);
 
-  } catch (error) {
-    console.error("❌ Error decoding token:", error);
-  }
-}, [login, navigate, location.state]);
-console.log("✅ Decoded Google token:", decoded);
+      login(token); // Store in context/localStorage
 
+      const target = ADMIN_EMAILS.includes(decoded.email)
+        ? "/admin-dashboard"
+        : "/dashboard";
 
+      navigate(location.state?.from?.pathname || target, { replace: true });
+    } catch (error) {
+      console.error("❌ Error decoding Google token:", error);
+    }
+  }, [login, navigate, location.state]);
 
+  /** ✅ Inject Google One Tap Script */
   useEffect(() => {
     if (!googleDivRef.current) return;
 
@@ -71,24 +70,22 @@ console.log("✅ Decoded Google token:", decoded);
 
     if (window.google?.accounts?.id) {
       inject();
-      return;
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = inject;
+      document.body.appendChild(script);
+      return () => { document.body.removeChild(script); };
     }
-
-    const script = document.createElement("script");
-    script.src = "https://accounts.google.com/gsi/client";
-    script.async = true;
-    script.defer = true;
-    script.onload = inject;
-    document.body.appendChild(script);
-
-    return () => { document.body.removeChild(script); };
   }, [handleCredential]);
 
-  /** Handle input field changes */
+  /** ✅ Handle Form Input Changes */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.id]: e.target.value });
 
-  /** Handle email/password login */
+  /** ✅ Email/Password Login Handler */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -104,10 +101,12 @@ console.log("✅ Decoded Google token:", decoded);
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, form);
       const { token } = res.data;
 
-      login(token); // AuthContext will decode and store user
+      login(token); // Save to AuthContext and localStorage
 
       const decoded: any = jwtDecode(token);
-      const target = ADMIN_EMAILS.includes(decoded.email) ? "/admin-dashboard" : "/dashboard";
+      const target = ADMIN_EMAILS.includes(decoded.email)
+        ? "/admin-dashboard"
+        : "/dashboard";
 
       navigate(location.state?.from?.pathname || target, { replace: true });
     } catch (err: any) {
@@ -131,7 +130,7 @@ console.log("✅ Decoded Google token:", decoded);
             <CardDescription>Use your university credentials</CardDescription>
           </CardHeader>
 
-          {/* Google button mounts here */}
+          {/* ✅ Google Sign-In button */}
           <div ref={googleDivRef} className="flex justify-center my-4" />
 
           <form onSubmit={handleSubmit}>
