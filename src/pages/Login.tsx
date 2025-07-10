@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import axios from "axios";
-import { ADMIN_EMAILS } from "@/pages/AdminDashboard"; // Adjust path as needed
+import { ADMIN_EMAILS } from "@/constants";
 
 const GOOGLE_ID = "319314674536-fq5ha9ltheldhm376k54keo35hhbdmfq.apps.googleusercontent.com";
 
@@ -32,20 +32,17 @@ const Login = () => {
     return;
   }
 
-  const token = response.credential;
-
   try {
+    const token = response.credential;
     const decoded: any = jwtDecode(token);
 
     if (!decoded?.email) {
-      console.error("❌ Token missing email field:", decoded);
+      console.error("❌ Decoded token is missing email:", decoded);
       return;
     }
 
-    // First log in (store user & token)
-    login(token);
+    login(token); // Store in localStorage
 
-    // Redirect based on email
     const target = ADMIN_EMAILS.includes(decoded.email)
       ? "/admin-dashboard"
       : "/dashboard";
@@ -56,6 +53,8 @@ const Login = () => {
     console.error("❌ Error decoding token:", error);
   }
 }, [login, navigate, location.state]);
+console.log("✅ Decoded Google token:", decoded);
+
 
 
   useEffect(() => {

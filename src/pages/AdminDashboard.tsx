@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { useNotifications } from "@/context/NotificationContext";
 import { useToast } from "@/components/ui/use-toast";
 
-export const ADMIN_EMAILS = ["deekshitha123@gmail.com", "admin2@gmail.com"];
+const ADMIN_EMAILS = ["deekshitha123@gmail.com", "admin2@gmail.com"];
 
 const AdminDashboard = () => {
   const { user } = useAuth();
