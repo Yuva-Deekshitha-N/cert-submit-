@@ -43,11 +43,20 @@ const Login = () => {
         return;
       }
 
-      console.log("✅ Decoded Google token:", decoded);
+      const role = ADMIN_EMAILS.includes(decoded.email) ? "admin" : "student";
+      
+      const user = {
+      name: decoded.name,
+      email: decoded.email,
+      role,
+      token: "google-oauth", // just a dummy token to keep context happy
+      };
 
-      login(token); // Save token in context/localStorage
+      console.log("Logging in Google user:", user);
 
-      const target = ADMIN_EMAILS.includes(decoded.email)
+      login(user); // Save token in context/localStorage
+
+      const target = role === "admin" 
         ? "/admin-dashboard"
         : "/dashboard";
 

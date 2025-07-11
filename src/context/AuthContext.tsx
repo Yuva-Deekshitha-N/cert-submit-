@@ -9,12 +9,12 @@ type User = {
   email: string;
   role: string;
   token: string;
-  exp?: number;
+  
 };
 
 interface AuthContextType {
   user: User | null;
-  login: (token: string) => Promise<void>;
+  login: (tokenOrUser: string | User) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email: decoded.email,
       role: decoded.role,
       token,
-      exp: decoded.exp,
+      
     };
   }, []);
 
@@ -77,20 +77,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadUser();
   }, [loadUser]);
 
-  const login = useCallback(async (token: string) => {
-    if (!token || typeof token !== 'string') {
-      throw new Error("Token must be a string before login.");
-    }
-
-    try {
-      const validatedUser = validateToken(token);
-      setUser(validatedUser);
-      localStorage.setItem('token', token);
-    } catch (error) {
-      console.error("❌ Login failed:", error);
-      throw error;
-    }
-  }, [validateToken]);
+  const login = (tokenOrUser: string | User) => {
+  if (typeof tokenOrUser === "string") {
+    const decoded: any = jwtDecode(tokenOrUser);
+    const user = {
+      name: decoded.name,
+      email: decoded.email,
+      role: decoded.role,
+      token: tokenOrUser,
+    };
+    setUser(user);
+    localStorage.setItem("token", tokenOrUser);
+  } else {
+    setUser(tokenOrUser); // This is a user object (from Google login)
+    localStorage.setItem("token", tokenOrUser.token); // Save dummy token
+  }
+};
 
   const logout = useCallback(() => {
     setUser(null);
