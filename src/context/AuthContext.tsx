@@ -1,4 +1,7 @@
-import React, { createContext, useState, useEffect, ReactNode, useContext, useCallback } from "react";
+import React, {
+  createContext, useState, useEffect,
+  ReactNode, useContext, useCallback
+} from "react";
 import { jwtDecode } from "jwt-decode";
 
 type User = {
@@ -34,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const decoded = jwtDecode<{
-      name: string;
+      name?: string;
       email: string;
       role: string;
       exp: number;
@@ -55,13 +58,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const loadUser = useCallback(() => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+
+    if (!token || typeof token !== 'string') {
+      console.warn('🔒 No token found or invalid format in localStorage');
+      return;
+    }
 
     try {
       const validatedUser = validateToken(token);
       setUser(validatedUser);
     } catch (error) {
-      console.error('Failed to load user:', error);
+      console.error('❌ Failed to load user:', error);
       localStorage.removeItem('token');
     }
   }, [validateToken]);
@@ -71,12 +78,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [loadUser]);
 
   const login = useCallback(async (token: string) => {
+    if (!token || typeof token !== 'string') {
+      throw new Error("Token must be a string before login.");
+    }
+
     try {
       const validatedUser = validateToken(token);
       setUser(validatedUser);
       localStorage.setItem('token', token);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("❌ Login failed:", error);
       throw error;
     }
   }, [validateToken]);
@@ -85,12 +96,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('token');
 
-    if (window.google?.accounts?.id) {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken && window.google?.accounts?.id) {
       try {
         window.google.accounts.id.disableAutoSelect();
-        window.google.accounts.id.revoke(localStorage.getItem('token') || '', () => {});
+        window.google.accounts.id.revoke(storedToken, () => {});
       } catch (error) {
-        console.error('Google logout error:', error);
+        console.error('❌ Google logout error:', error);
       }
     }
   }, []);

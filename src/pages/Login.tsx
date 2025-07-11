@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/logo";
 import axios from "axios";
-import { ADMIN_EMAILS } from "@/constants"; // Must be exported properly
+import { ADMIN_EMAILS } from "@/constants";
 
 const GOOGLE_ID = "319314674536-fq5ha9ltheldhm376k54keo35hhbdmfq.apps.googleusercontent.com";
 
@@ -27,23 +27,25 @@ const Login = () => {
 
   /** ✅ Google One-Tap Login Handler */
   const handleCredential = useCallback((response: any) => {
-    if (!response || !response.credential || typeof response.credential !== "string") {
+    if (!response || typeof response.credential !== "string") {
       console.error("❌ Invalid Google credential:", response);
+      setError("Invalid Google login response.");
       return;
     }
 
     try {
-      const token = response.credential;
+      const token: string = response.credential;
       const decoded: any = jwtDecode(token);
 
       if (!decoded?.email) {
         console.error("❌ Decoded token missing email:", decoded);
+        setError("Google token is invalid.");
         return;
       }
 
       console.log("✅ Decoded Google token:", decoded);
 
-      login(token); // Store in context/localStorage
+      login(token); // Save token in context/localStorage
 
       const target = ADMIN_EMAILS.includes(decoded.email)
         ? "/admin-dashboard"
@@ -52,6 +54,7 @@ const Login = () => {
       navigate(location.state?.from?.pathname || target, { replace: true });
     } catch (error) {
       console.error("❌ Error decoding Google token:", error);
+      setError("Google login failed.");
     }
   }, [login, navigate, location.state]);
 
@@ -101,6 +104,12 @@ const Login = () => {
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, form);
       const { token } = res.data;
 
+      if (typeof token !== "string") {
+        console.error("❌ Login API returned invalid token:", token);
+        setError("Invalid token received from server.");
+        return;
+      }
+
       login(token); // Save to AuthContext and localStorage
 
       const decoded: any = jwtDecode(token);
@@ -110,6 +119,7 @@ const Login = () => {
 
       navigate(location.state?.from?.pathname || target, { replace: true });
     } catch (err: any) {
+      console.error("❌ Login error:", err);
       const msg = err.response?.data?.message || "Login failed.";
       setError(msg);
     }

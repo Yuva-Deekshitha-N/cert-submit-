@@ -12,6 +12,7 @@ const Certificate = require("./models/Certificate");
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+
 // Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
