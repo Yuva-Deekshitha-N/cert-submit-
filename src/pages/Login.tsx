@@ -43,22 +43,11 @@ const Login = () => {
         return;
       }
 
+      console.log("✅ Decoded Google token:", decoded);
+      login(token); // ✅ Store Google token (real JWT)
+
       const role = ADMIN_EMAILS.includes(decoded.email) ? "admin" : "student";
-      
-      const user = {
-      name: decoded.name,
-      email: decoded.email,
-      role,
-      token: "google-oauth", // just a dummy token to keep context happy
-      };
-
-      console.log("Logging in Google user:", user);
-
-      login(user); // Save token in context/localStorage
-
-      const target = role === "admin" 
-        ? "/admin-dashboard"
-        : "/dashboard";
+      const target = role === "admin" ? "/admin-dashboard" : "/dashboard";
 
       navigate(location.state?.from?.pathname || target, { replace: true });
     } catch (error) {
@@ -119,7 +108,7 @@ const Login = () => {
         return;
       }
 
-      login(token); // Save to AuthContext and localStorage
+      login(token); // ✅ Save to AuthContext and localStorage
 
       const decoded: any = jwtDecode(token);
       const target = ADMIN_EMAILS.includes(decoded.email)
