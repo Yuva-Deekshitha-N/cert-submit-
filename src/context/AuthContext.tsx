@@ -36,8 +36,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Token decoder and validator
   const validateToken = useCallback((token: string): User => {
-    if (!token || typeof token !== "string") {
-      throw new Error("Token must be a string");
+  console.log("🔍 Validating token:", token); // Add this line
+    if (!token || token.split(".").length !== 3) {
+      throw new Error("Token format invalid");
     }
 
     const decoded = jwtDecode<{
@@ -63,21 +64,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Load user from localStorage
   const loadUser = useCallback(() => {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
-    if (!token) {
-      console.warn("🔒 No token in storage");
-      return;
-    }
+  if (!token || token === "null" || token === "undefined") {
+    console.warn("🔒 No valid token in localStorage");
+    return;
+  }
 
-    try {
-      const validatedUser = validateToken(token);
-      setUser(validatedUser);
-    } catch (error) {
-      console.error("❌ Failed to load user:", error);
-      localStorage.removeItem("token");
-    }
-  }, [validateToken]);
+  try {
+    const validatedUser = validateToken(token);
+    setUser(validatedUser);
+  } catch (error) {
+    console.error("❌ Failed to load user:", error);
+    localStorage.removeItem("token");
+  }
+}, [validateToken]);
+
 
   useEffect(() => {
     loadUser();
@@ -85,7 +87,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Login with token or user object
   const login = (tokenOrUser: string | User) => {
-    if (typeof tokenOrUser === "string") {
+  if (typeof tokenOrUser === "string") {
+    if (!tokenOrUser || tokenOrUser.split(".").length !== 3) {
+      console.error("❌ Login received invalid token format");
+      return;
+    }
+
     const decoded: any = jwtDecode(tokenOrUser);
     const user = {
       name: decoded.name,
@@ -95,14 +102,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     setUser(user);
     localStorage.setItem("token", tokenOrUser);
+  } else {
+    setUser(tokenOrUser);
+    localStorage.setItem("token", tokenOrUser.token);
+    console.log("✅ Stored token:", localStorage.getItem("token"));
   }
-     else {
-      setUser(tokenOrUser);
-      localStorage.setItem("token", tokenOrUser.token);
-      console.log("Stored token:", localStorage.getItem("token")); // 🔍 Add this
+};
 
-    }
-  };
+
 
   // Logout
   const logout = useCallback(() => {
