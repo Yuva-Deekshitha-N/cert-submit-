@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
@@ -8,28 +8,30 @@ type ProtectedRouteProps = {
 };
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // wait until token is validated and user is loaded
-    const timeout = setTimeout(() => setLoading(false), 100); // add small delay
-    return () => clearTimeout(timeout);
-  }, []);
+    // Optional debug log
+    console.log("🔒 ProtectedRoute: loading =", isLoading, "user =", user);
+  }, [isLoading, user]);
 
-  if (loading) return <div className="p-6 text-center">Loading...</div>;
-
-  if (!isAuthenticated()) {
-    return (
-      <Navigate to="/login" state={{ from: location }} replace />
-    );
+  // Wait for AuthContext to finish loading user from localStorage
+  if (isLoading) {
+    return <div className="p-6 text-center">Loading authentication...</div>;
   }
 
+  // Redirect if not authenticated
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Redirect if user does not have required role
   if (requiredRole && user?.role !== requiredRole) {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // Access granted
   return <>{children}</>;
 };
 

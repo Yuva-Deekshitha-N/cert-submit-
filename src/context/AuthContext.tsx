@@ -22,6 +22,7 @@ interface AuthContextType {
   login: (tokenOrUser: string | User) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
+  isLoading: boolean; // ✅ added for ProtectedRoute
 }
 
 // ✅ Default Context
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
   isAuthenticated: () => false,
+  isLoading: true,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -37,6 +39,7 @@ export const useAuth = () => useContext(AuthContext);
 // ✅ Provider Component
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // ✅ tracks loading state
 
   // ✅ Token Validator
   const validateToken = useCallback((token: string): User => {
@@ -68,6 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = localStorage.getItem("token");
 
     if (!token || token === "null" || token === "undefined") {
+      setIsLoading(false); // ✅ mark loading done
       return;
     }
 
@@ -77,6 +81,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error("❌ Invalid token, clearing storage");
       localStorage.removeItem("token");
+    } finally {
+      setIsLoading(false); // ✅ done loading regardless of result
     }
   }, [validateToken]);
 
@@ -131,7 +137,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, validateToken]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated }}>
+    <AuthContext.Provider
+      value={{ user, login, logout, isAuthenticated, isLoading }}
+    >
       {children}
     </AuthContext.Provider>
   );
