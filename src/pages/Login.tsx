@@ -26,35 +26,39 @@ const Login = () => {
   const googleDivRef = useRef<HTMLDivElement>(null);
 
   /** ✅ Google One-Tap Login Handler */
-  const handleCredential = useCallback((response: any) => {
-    if (!response || typeof response.credential !== "string") {
-      console.error("❌ Invalid Google credential:", response);
-      setError("Invalid Google login response.");
+const handleCredential = useCallback(async (response: any) => {
+  if (!response || typeof response.credential !== "string") {
+    console.error("❌ Invalid Google credential:", response);
+    setError("Invalid Google login response.");
+    return;
+  }
+
+  try {
+    const googleToken = response.credential;
+
+    // Send token to backend
+    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/google`, {
+      token: googleToken,
+    });
+
+    const { token } = res.data;
+    if (!token || typeof token !== "string") {
+      setError("Login failed: no token received.");
       return;
     }
 
-    try {
-      const token: string = response.credential;
-      const decoded: any = jwtDecode(token);
+    login(token); // Save real JWT
 
-      if (!decoded?.email) {
-        console.error("❌ Decoded token missing email:", decoded);
-        setError("Google token is invalid.");
-        return;
-      }
+    const decoded: any = jwtDecode(token);
+    const target = decoded.role === "admin" ? "/admin-dashboard" : "/dashboard";
+    navigate(location.state?.from?.pathname || target, { replace: true });
 
-      console.log("✅ Decoded Google token:", decoded);
-      login(token); // ✅ Store Google token (real JWT)
+  } catch (error) {
+    console.error("❌ Google login failed:", error);
+    setError("Google login failed.");
+  }
+}, [login, navigate, location.state]);
 
-      const role = ADMIN_EMAILS.includes(decoded.email) ? "admin" : "student";
-      const target = role === "admin" ? "/admin-dashboard" : "/dashboard";
-
-      navigate(location.state?.from?.pathname || target, { replace: true });
-    } catch (error) {
-      console.error("❌ Error decoding Google token:", error);
-      setError("Google login failed.");
-    }
-  }, [login, navigate, location.state]);
 
   /** ✅ Inject Google One Tap Script */
   useEffect(() => {

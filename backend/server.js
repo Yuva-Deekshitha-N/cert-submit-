@@ -10,6 +10,7 @@ dotenv.config(); // Load .env file
 const Certificate = require("./models/Certificate");
 
 const app = express();
+app.use(express.json());
 const PORT = process.env.PORT || 8000;
 
 

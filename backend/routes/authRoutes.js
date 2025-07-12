@@ -2,10 +2,14 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const ADMIN_EMAILS = ["deekshitha123@gmail.com", "admin2@gmail.com"];
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // ✅ Register Route
 router.post("/register", async (req, res) => {
@@ -21,7 +25,6 @@ router.post("/register", async (req, res) => {
     const newUser = new User({ name, email, password: hashed, role });
     await newUser.save();
 
-    // ✅ Generate token
     const token = jwt.sign(
       { email: newUser.email, name: newUser.name, role: newUser.role },
       JWT_SECRET,
@@ -55,14 +58,11 @@ router.post("/login", async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
     const token = jwt.sign(
-      {
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
+      { email: user.email, name: user.name, role: user.role },
       JWT_SECRET,
       { expiresIn: "1d" }
     );
+
     res.status(200).json({
       token,
       user: {
@@ -75,6 +75,35 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ message: "Login failed" });
+  }
+});
+
+// ✅ Google Login Route
+router.post("/google", async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name } = payload;
+
+    const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
+
+    const jwtToken = jwt.sign(
+      { email, name, role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({ token: jwtToken });
+
+  } catch (error) {
+    console.error("Google token verification failed:", error);
+    res.status(401).json({ message: "Invalid Google token" });
   }
 });
 
