@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, AlertTriangle, MapPin, Calendar } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom"; // ⛳ removed useNavigate
 import { useEffect, useState } from "react";
 import { useNotifications } from "@/context/NotificationContext";
 
@@ -39,7 +39,6 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
   const { addNotification } = useNotifications();
@@ -47,7 +46,7 @@ const Dashboard = () => {
   useEffect(() => {
     const studentEmail = localStorage.getItem("studentEmail");
     if (!studentEmail) {
-      navigate("/login");
+      setLoading(false); // ✅ skip fetching, just show defaults
       return;
     }
 
@@ -74,7 +73,7 @@ const Dashboard = () => {
         setCertificates([]);
         setLoading(false);
       });
-  }, [navigate, addNotification]);
+  }, [addNotification]);
 
   if (loading) {
     return (
@@ -162,6 +161,7 @@ const Dashboard = () => {
             ))}
           </div>
 
+          {/* Certificates Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Card>
@@ -231,6 +231,7 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Deadlines and Centers */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2">
               <Card>
