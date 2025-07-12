@@ -26,44 +26,40 @@ const Login = () => {
   const googleDivRef = useRef<HTMLDivElement>(null);
 
   /** ✅ Google One-Tap Login Handler */
-
   const handleCredential = useCallback(async (response: any) => {
-  if (!response || typeof response.credential !== "string") {
-    console.error("❌ Invalid Google credential:", response);
-    setError("Invalid Google login response.");
-    return;
-  }
-
-  try {
-    const googleToken = response.credential;
-
-    // ✅ Send Google token to your backend to validate and generate app JWT
-    const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/google`, {
-      token: googleToken,
-    });
-
-    const { token } = res.data;
-
-    if (!token || typeof token !== "string") {
-      setError("Login failed: No token received.");
+    if (!response || typeof response.credential !== "string") {
+      console.error("❌ Invalid Google credential:", response);
+      setError("Invalid Google login response.");
       return;
     }
 
-    // ✅ Save JWT token into context/localStorage
-    login(token);
+    try {
+      const googleToken = response.credential;
 
-    const decoded: any = jwtDecode(token);
-    const target = decoded.role === "admin" ? "/admin-dashboard" : "/dashboard";
-    navigate(location.state?.from?.pathname || target, { replace: true });
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/google`, {
+        token: googleToken,
+      });
 
-  } catch (error) {
-    console.error("❌ Google login failed:", error);
-    setError("Google login failed.");
-  }
-}, [login, navigate, location.state]);
+      console.log("✅ Google login response:", res.data);
 
+      const token = res.data?.token;
 
+      if (!token || typeof token !== "string" || token.split(".").length !== 3) {
+        setError("Login failed: Invalid or missing token from server.");
+        return;
+      }
 
+      login(token);
+
+      const decoded: any = jwtDecode(token);
+      const target = decoded.role === "admin" ? "/admin-dashboard" : "/dashboard";
+      navigate(location.state?.from?.pathname || target, { replace: true });
+
+    } catch (error: any) {
+      console.error("❌ Google login failed:", error.response?.data || error.message);
+      setError("Google login failed.");
+    }
+  }, [login, navigate, location.state]);
 
   /** ✅ Inject Google One Tap Script */
   useEffect(() => {
@@ -109,15 +105,17 @@ const Login = () => {
 
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, form);
-      const { token } = res.data;
+      const token = res.data?.token;
 
-      if (typeof token !== "string") {
-        console.error("❌ Login API returned invalid token:", token);
-        setError("Invalid token received from server.");
+      console.log("✅ Email login response:", res.data);
+
+      if (!token || typeof token !== "string" || token.split(".").length !== 3) {
+        console.error("❌ Invalid token from server:", token);
+        setError("Login failed: Invalid token received.");
         return;
       }
 
-      login(token); // ✅ Save to AuthContext and localStorage
+      login(token);
 
       const decoded: any = jwtDecode(token);
       const target = ADMIN_EMAILS.includes(decoded.email)
@@ -126,9 +124,8 @@ const Login = () => {
 
       navigate(location.state?.from?.pathname || target, { replace: true });
     } catch (err: any) {
-      console.error("❌ Login error:", err);
-      const msg = err.response?.data?.message || "Login failed.";
-      setError(msg);
+      console.error("❌ Login error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Login failed.");
     }
   };
 

@@ -41,7 +41,7 @@ router.post("/register", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Register error:", error);
+    console.error("❌ Register error:", error);
     res.status(500).json({ message: "Registration failed" });
   }
 });
@@ -73,14 +73,18 @@ router.post("/login", async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
     res.status(500).json({ message: "Login failed" });
   }
 });
 
-// ✅ Google Login Route
+// ✅ Google Login Route (Updated)
 router.post("/google", async (req, res) => {
   const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: "No token provided in request body" });
+  }
 
   try {
     const ticket = await googleClient.verifyIdToken({
@@ -89,8 +93,12 @@ router.post("/google", async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    const { email, name } = payload;
 
+    if (!payload || !payload.email || !payload.name) {
+      return res.status(401).json({ message: "Google token is invalid or missing fields" });
+    }
+
+    const { email, name } = payload;
     const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
 
     let user = await User.findOne({ email });
@@ -107,7 +115,7 @@ router.post("/google", async (req, res) => {
     res.status(200).json({ token: jwtToken });
 
   } catch (error) {
-    console.error("Google token verification failed:", error);
+    console.error("❌ Google token verification failed:", error);
     res.status(401).json({ message: "Invalid Google token" });
   }
 });
