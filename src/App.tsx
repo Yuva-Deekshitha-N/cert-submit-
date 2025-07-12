@@ -13,11 +13,11 @@ import Chatbot from "./pages/Chatbot";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/AdminDashboard"; // ✅ if you created this
+import AdminDashboard from "./pages/AdminDashboard";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
-import { NotificationProvider } from "@/context/NotificationContext"; // ✅
+import { NotificationProvider } from "@/context/NotificationContext";
 import Unauthorized from "@/pages/Unauthorized";
 
 const queryClient = new QueryClient();
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              
+              <Route path="/unauthorized" element={<Unauthorized />} /> {/* ✅ FIXED */}
 
               {/* protected routes */}
               <Route
@@ -88,11 +88,6 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route path="/unauthorized" element={
-                  <ProtectedRoute>
-                    <Unauthorized />
-                  </ProtectedRoute>} />
-
 
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
