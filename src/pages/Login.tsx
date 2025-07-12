@@ -26,7 +26,8 @@ const Login = () => {
   const googleDivRef = useRef<HTMLDivElement>(null);
 
   /** ✅ Google One-Tap Login Handler */
-const handleCredential = useCallback(async (response: any) => {
+
+  const handleCredential = useCallback(async (response: any) => {
   if (!response || typeof response.credential !== "string") {
     console.error("❌ Invalid Google credential:", response);
     setError("Invalid Google login response.");
@@ -36,18 +37,20 @@ const handleCredential = useCallback(async (response: any) => {
   try {
     const googleToken = response.credential;
 
-    // Send token to backend
+    // ✅ Send Google token to your backend to validate and generate app JWT
     const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/google`, {
       token: googleToken,
     });
 
     const { token } = res.data;
+
     if (!token || typeof token !== "string") {
-      setError("Login failed: no token received.");
+      setError("Login failed: No token received.");
       return;
     }
 
-    login(token); // Save real JWT
+    // ✅ Save JWT token into context/localStorage
+    login(token);
 
     const decoded: any = jwtDecode(token);
     const target = decoded.role === "admin" ? "/admin-dashboard" : "/dashboard";
@@ -58,6 +61,8 @@ const handleCredential = useCallback(async (response: any) => {
     setError("Google login failed.");
   }
 }, [login, navigate, location.state]);
+
+
 
 
   /** ✅ Inject Google One Tap Script */

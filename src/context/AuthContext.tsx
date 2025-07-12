@@ -86,34 +86,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Login with token or user object
   const login = (tokenOrUser: string | User) => {
     if (typeof tokenOrUser === "string") {
-      try {
-        const validatedUser = validateToken(tokenOrUser);
-        setUser(validatedUser);
-        localStorage.setItem("token", tokenOrUser);
-      } catch (error) {
-        console.error("❌ Login failed:", error);
-      }
-    } else {
+    const decoded: any = jwtDecode(tokenOrUser);
+    const user = {
+      name: decoded.name,
+      email: decoded.email,
+      role: decoded.role,
+      token: tokenOrUser,
+    };
+    setUser(user);
+    localStorage.setItem("token", tokenOrUser);
+  }
+     else {
       setUser(tokenOrUser);
       localStorage.setItem("token", tokenOrUser.token);
+      console.log("Stored token:", localStorage.getItem("token")); // 🔍 Add this
+
     }
   };
 
   // Logout
   const logout = useCallback(() => {
-    setUser(null);
-    const token = localStorage.getItem("token");
-    localStorage.removeItem("token");
+  setUser(null);
+  localStorage.removeItem("token"); // ✅ removes token on logout
 
-    if (token && window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.disableAutoSelect();
-        window.google.accounts.id.revoke(token, () => {});
-      } catch (error) {
-        console.error("❌ Google logout error:", error);
-      }
+  // Optional: Revoke Google login if using Google One-Tap
+  const storedToken = localStorage.getItem("token");
+  if (storedToken && window.google?.accounts?.id) {
+    try {
+      window.google.accounts.id.disableAutoSelect();
+      window.google.accounts.id.revoke(storedToken, () => {});
+    } catch (error) {
+      console.error("❌ Google logout error:", error);
     }
-  }, []);
+  }
+}, []);
+
 
   // Auth check
   const isAuthenticated = useCallback(() => {

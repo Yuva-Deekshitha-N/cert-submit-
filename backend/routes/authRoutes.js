@@ -93,6 +93,11 @@ router.post("/google", async (req, res) => {
 
     const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
 
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.create({ name, email, role, password: "" });
+    }
+
     const jwtToken = jwt.sign(
       { email, name, role },
       JWT_SECRET,
