@@ -102,8 +102,10 @@ router.post("/google", async (req, res) => {
     const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
 
     let user = await User.findOne({ email });
+
+    // ✅ Create only if user not exists
     if (!user) {
-      user = await User.create({ name, email, role, password: "" });
+      user = await User.create({ name, email, role, authType: "google" });
     }
 
     const jwtToken = jwt.sign(
@@ -119,5 +121,6 @@ router.post("/google", async (req, res) => {
     res.status(401).json({ message: "Invalid Google token" });
   }
 });
+
 
 module.exports = router;
