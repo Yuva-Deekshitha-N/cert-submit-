@@ -19,14 +19,45 @@ interface GoogleLoginProps {
 
 const GoogleLogin: React.FC<GoogleLoginProps> = ({ onLogin }) => {
   useEffect(() => {
-    const handleCredentialResponse = (response: any) => {
-      const decoded: any = jwtDecode(response.credential);
+    const handleCredentialResponse = async (response: any) => {
+  if (!response?.credential) return;
+
+  try {
+    const googleToken = response.credential;
+    
+    // Optional: Decode locally for preview (not for security!)
+    const decoded: any = jwtDecode(googleToken);
+    console.log("Google user:", decoded);
+
+    // ✅ Send to backend
+    const res = await fetch('https://cert-submit.onrender.com/api/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: googleToken }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.token) {
+      // Save JWT in localStorage
+      localStorage.setItem('token', data.token);
+
+      const user: any = jwtDecode(data.token);
       onLogin({
-        name: decoded.name,
-        email: decoded.email,
-        picture: decoded.picture,
+        name: user.name,
+        email: user.email,
+        picture: decoded.picture, // Or use from JWT if you store it
       });
-    };
+
+      console.log("✅ Logged in and token stored");
+    } else {
+      console.error("❌ Backend error:", data.message);
+    }
+  } catch (err) {
+    console.error("❌ Google login failed:", err);
+  }
+};
+
 
     const initializeGSI = () => {
       if (!window.google || !window.google.accounts || !window.google.accounts.id) return;
