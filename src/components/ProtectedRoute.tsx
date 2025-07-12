@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
 
   if (!isAuthenticated()) {
     // Redirect unauthenticated users to login
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/register" state={{ from: location }} replace />;
   }
 
   if (requiredRole && user?.role !== requiredRole) {
