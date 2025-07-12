@@ -22,7 +22,6 @@ const Login = () => {
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-
   const googleDivRef = useRef<HTMLDivElement>(null);
 
   /** ✅ Google One-Tap Login Handler */
@@ -40,9 +39,8 @@ const Login = () => {
         token: googleToken,
       });
 
-      console.log("✅ Google login response:", res.data);
-
       const token = res.data?.token;
+      console.log("✅ Google login response:", res.data);
 
       if (!token || typeof token !== "string" || token.split(".").length !== 3) {
         setError("Login failed: Invalid or missing token from server.");
@@ -53,11 +51,14 @@ const Login = () => {
       console.log("✅ Token stored in localStorage:", localStorage.getItem("token"));
 
       const decoded: any = jwtDecode(token);
-      const target = ADMIN_EMAILS.includes(decoded.email)
-        ? "/admin-dashboard"
-        : "/dashboard";
+      const target = ADMIN_EMAILS.includes(decoded.email) ? "/admin-dashboard" : "/dashboard";
 
-      navigate(location.state?.from?.pathname || target, { replace: true });
+      console.log("➡️ Navigating to:", location.state?.from?.pathname || target);
+
+      // Fix: slight delay for context to update
+      setTimeout(() => {
+        navigate(location.state?.from?.pathname || target, { replace: true });
+      }, 100); // 100ms delay for smoother transition
 
     } catch (error: any) {
       console.error("❌ Google login failed:", error.response?.data || error.message);
@@ -127,7 +128,12 @@ const Login = () => {
         ? "/admin-dashboard"
         : "/dashboard";
 
-      navigate(location.state?.from?.pathname || target, { replace: true });
+      console.log("➡️ Navigating to:", location.state?.from?.pathname || target);
+
+      setTimeout(() => {
+        navigate(location.state?.from?.pathname || target, { replace: true });
+      }, 100); // short delay to allow AuthContext update
+
     } catch (err: any) {
       console.error("❌ Login error:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Login failed.");
