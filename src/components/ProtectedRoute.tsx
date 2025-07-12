@@ -1,27 +1,36 @@
-import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-interface ProtectedRouteProps {
-  children: JSX.Element;
+type ProtectedRouteProps = {
+  children: React.ReactNode;
   requiredRole?: "admin" | "student";
-}
+};
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // wait until token is validated and user is loaded
+    const timeout = setTimeout(() => setLoading(false), 100); // add small delay
+    return () => clearTimeout(timeout);
+  }, []);
+
+  if (loading) return <div className="p-6 text-center">Loading...</div>;
 
   if (!isAuthenticated()) {
-    // Redirect unauthenticated users to login
-    return <Navigate to="/register" state={{ from: location }} replace />;
+    return (
+      <Navigate to="/login" state={{ from: location }} replace />
+    );
   }
 
   if (requiredRole && user?.role !== requiredRole) {
-    // Redirect to unauthorized if role doesn't match
     return <Navigate to="/unauthorized" replace />;
   }
 
-  return children;
+  return <>{children}</>;
 };
 
 export default ProtectedRoute;
