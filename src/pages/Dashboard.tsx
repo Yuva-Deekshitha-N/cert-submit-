@@ -2,12 +2,25 @@
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, Clock, AlertTriangle, MapPin, Calendar } from "lucide-react";
-import { Link } from "react-router-dom"; // ⛳ removed useNavigate
+import {
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  MapPin,
+  Calendar,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNotifications } from "@/context/NotificationContext";
+import { useAuth } from "@/context/AuthContext"; // ← pull in your AuthContext
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -39,18 +52,19 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 const Dashboard = () => {
+  const { user } = useAuth();              // ← get the logged‑in user
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
   const { addNotification } = useNotifications();
 
   useEffect(() => {
-    const studentEmail = localStorage.getItem("studentEmail");
-    if (!studentEmail) {
-      setLoading(false); // ✅ skip fetching, just show defaults
+    // if no user or no email, skip fetching
+    if (!user?.email) {
+      setLoading(false);
       return;
     }
 
-    fetch(`${API_URL}/api/certificates/${studentEmail}`)
+    fetch(`${API_URL}/api/certificates/${user.email}`)
       .then(async (res) => {
         if (!res.ok) throw new Error(`Server error: ${res.status}`);
         const data = await res.json();
@@ -60,20 +74,20 @@ const Dashboard = () => {
         setCertificates(data);
         setLoading(false);
 
-        const completed = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-        const pending = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+        const completed  = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+        const pending    = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
         const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
 
-        if (completed) addNotification(`${completed} certificates marked as Completed.`, "success");
+        if (completed)  addNotification(`${completed} certificates marked as Completed.`, "success");
         if (inprogress) addNotification(`${inprogress} certificates are In Progress.`, "info");
-        if (pending) addNotification(`${pending} certificates are Pending.`, "warning");
+        if (pending)    addNotification(`${pending} certificates are Pending.`, "warning");
       })
       .catch((err) => {
         console.error("Failed to fetch certificates:", err);
         setCertificates([]);
         setLoading(false);
       });
-  }, [addNotification]);
+  }, [user, addNotification]);
 
   if (loading) {
     return (
@@ -83,17 +97,16 @@ const Dashboard = () => {
     );
   }
 
-  const completedCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-  const inProgressCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
-  const pendingCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
-  const progressPercentage = certificates.length ? (completedCount / certificates.length) * 100 : 0;
+  const completedCount   = certificates.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+  const inProgressCount  = certificates.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+  const pendingCount     = certificates.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+  const progressPercent  = certificates.length ? (completedCount / certificates.length) * 100 : 0;
 
   const deadlines = certificates
     .filter(c => c.status?.toLowerCase() !== STATUS.COMPLETED && c.dueDate && c.dueDate !== "Submitted")
     .map(c => {
       const dueDate = new Date(c.dueDate);
-      const today = new Date();
-      const daysLeft = Math.max(0, Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24)));
+      const daysLeft = Math.max(0, Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
       return {
         id: c._id?.toString() || c.id?.toString() || c.name,
         name: c.name,
@@ -120,30 +133,36 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[{
-              title: "Overall Progress",
-              content: <>
-                <div className="text-2xl font-bold">{completedCount}/{certificates.length}</div>
-                <Progress value={progressPercentage} className="h-2 mt-2" />
-                <p className="text-xs text-muted-foreground mt-2">Certificates completed</p>
-              </>
-            }, {
-              title: "Completed",
-              icon: <CheckCircle className="h-5 w-5 text-green-500 mr-2" />,
-              count: completedCount,
-              desc: "Certificates submitted"
-            }, {
-              title: "In Progress",
-              icon: <Clock className="h-5 w-5 text-blue-500 mr-2" />,
-              count: inProgressCount,
-              desc: "Certificates in process"
-            }, {
-              title: "Pending",
-              icon: <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />,
-              count: pendingCount,
-              desc: "Certificates to submit"
-            }].map((card, i) => (
+            {[
+              {
+                title: "Overall Progress",
+                content: <>
+                  <div className="text-2xl font-bold">{completedCount}/{certificates.length}</div>
+                  <Progress value={progressPercent} className="h-2 mt-2" />
+                  <p className="text-xs text-muted-foreground mt-2">Certificates completed</p>
+                </>,
+              },
+              {
+                title: "Completed",
+                icon: <CheckCircle className="h-5 w-5 text-green-500 mr-2" />,
+                count: completedCount,
+                desc: "Certificates submitted",
+              },
+              {
+                title: "In Progress",
+                icon: <Clock className="h-5 w-5 text-blue-500 mr-2" />,
+                count: inProgressCount,
+                desc: "Certificates in process",
+              },
+              {
+                title: "Pending",
+                icon: <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />,
+                count: pendingCount,
+                desc: "Certificates to submit",
+              },
+            ].map((card, i) => (
               <Card key={i}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
@@ -161,7 +180,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Certificates Section */}
+          {/* Default & User Certificates */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <Card>
@@ -170,7 +189,7 @@ const Dashboard = () => {
                   <CardDescription>Default certificates for all users</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {defaultCertificates.map((c) => (
+                  {defaultCertificates.map(c => (
                     <div key={c.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-4">
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
@@ -203,8 +222,9 @@ const Dashboard = () => {
                   {certificates.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No certificates found.</p>
                   ) : (
-                    certificates.map((c) => (
-                      <div key={c._id?.toString() || c.id?.toString() || c.name} className="flex items-center justify-between p-3 border rounded-lg">
+                    certificates.map(c => (
+                      <div key={c._id?.toString() || c.id?.toString() || c.name}
+                           className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center space-x-4">
                           <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
                             c.status?.toLowerCase() === STATUS.COMPLETED
@@ -231,7 +251,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Deadlines and Centers */}
+          {/* Deadlines & Locations */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             <div className="lg:col-span-2">
               <Card>
@@ -242,7 +262,7 @@ const Dashboard = () => {
                   {deadlines.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No upcoming deadlines.</p>
                   ) : (
-                    deadlines.map((d) => (
+                    deadlines.map(d => (
                       <div key={d.id} className="flex items-start space-x-3">
                         <div className={`mt-0.5 h-6 w-6 rounded-full flex items-center justify-center ${
                           d.daysLeft <= 10
@@ -279,7 +299,7 @@ const Dashboard = () => {
                   <CardTitle>Nearest Submission Centers</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {submissionCenters.map((center) => (
+                  {submissionCenters.map(center => (
                     <div key={center.id} className="flex items-start space-x-3">
                       <div className="mt-0.5 h-6 w-6 rounded-full bg-maroon-100 text-maroon-700 flex items-center justify-center">
                         <MapPin className="h-3 w-3" />
