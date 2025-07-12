@@ -103,7 +103,7 @@ router.post("/google", async (req, res) => {
 
     let user = await User.findOne({ email });
     if (!user) {
-      user = await User.create({ name, email, role, password: undefined });
+      user = await User.create({ name, email, role, password: "" });
     }
 
     const jwtToken = jwt.sign(
