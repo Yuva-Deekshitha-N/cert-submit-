@@ -50,6 +50,8 @@ const Login = () => {
       }
 
       login(token);
+      console.log("✅ Token stored in localStorage:", localStorage.getItem("token"));
+
 
       const decoded: any = jwtDecode(token);
       const target = decoded.role === "admin" ? "/admin-dashboard" : "/dashboard";
@@ -116,6 +118,8 @@ const Login = () => {
       }
 
       login(token);
+      console.log("✅ Token stored in localStorage:", localStorage.getItem("token"));
+
 
       const decoded: any = jwtDecode(token);
       const target = ADMIN_EMAILS.includes(decoded.email)

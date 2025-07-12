@@ -88,11 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Login with token or user object
   const login = (tokenOrUser: string | User) => {
   if (typeof tokenOrUser === "string") {
-    if (!tokenOrUser || tokenOrUser.split(".").length !== 3) {
-      console.error("❌ Login received invalid token format");
-      return;
-    }
-
     const decoded: any = jwtDecode(tokenOrUser);
     const user = {
       name: decoded.name,
@@ -100,16 +95,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role: decoded.role,
       token: tokenOrUser,
     };
+    console.log("🧪 Attempting to save token:", tokenOrUser);
+    setTimeout(() => {
+      console.log("🔍 Token in localStorage (after delay):", localStorage.getItem("token"));
+    }, 1000);
+
     setUser(user);
-    localStorage.setItem("token", tokenOrUser);
+    localStorage.setItem("token", tokenOrUser); // ✅ THIS LINE
   } else {
     setUser(tokenOrUser);
     localStorage.setItem("token", tokenOrUser.token);
-    console.log("✅ Stored token:", localStorage.getItem("token"));
   }
 };
-
-
 
   // Logout
   const logout = useCallback(() => {
