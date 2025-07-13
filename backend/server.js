@@ -6,6 +6,8 @@ const fs = require("fs");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const Certificate = require("./models/Certificate");
+const session = require("express-session");
+const googleAuthRoutes = require("./routes/googleAuth");
 
 dotenv.config();
 
@@ -31,6 +33,7 @@ app.use(cors({
   credentials: true
 }));
 
+app.use("/api/auth", googleAuthRoutes);
 // ✅ CORS Security Headers (for COOP/COEP)
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
