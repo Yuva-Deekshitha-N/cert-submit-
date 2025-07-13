@@ -45,7 +45,7 @@ export default function UploadCertificate() {
       setMessage("");
 
       const formData = new FormData();
-      formData.append("file", file); // ✅ Correct key
+      formData.append("certificate", file); // ✅ must match backend key
       formData.append("studentEmail", user.email);
       formData.append("name", certificateName);
       formData.append("status", "Pending");
