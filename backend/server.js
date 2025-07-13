@@ -33,17 +33,16 @@ app.use(cors({
   ],
   credentials: true
 }));
-app.use(session({ secret: "secret", resave: false, saveUninitialized: true }));
 
 app.use("/api/auth", googleAuthRoutes);
+app.use("/api/auth", authRoutes); // ✅ This enables /api/auth/login and /register
+
 // ✅ CORS Security Headers (for COOP/COEP)
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   next();
 });
-app.use("/api/auth", authRoutes); // ✅ This enables /api/auth/login and /register
-
 
 // ✅ Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -79,7 +78,7 @@ app.post("/api/certificates/upload", upload.single("certificate"), async (req, r
 
     if (!file) return res.status(400).json({ message: "No file uploaded." });
 
-    const BASE_URL = process.env.BASE_URL || "https://cert-submit.onrender.com";
+    const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
     const fileUrl = `${BASE_URL}/uploads/${file.filename}`;
 
     const certificate = new Certificate({
@@ -174,6 +173,12 @@ app.delete("/api/certificates/:id", async (req, res) => {
     res.status(500).json({ message: "Delete failed", error: err.message });
   }
 });
+
+app.use((err, req, res, next) => {
+  console.error("❌ Global error:", err.stack);
+  res.status(500).json({ message: "Server error", error: err.message });
+});
+
 
 // ---------------------------
 // ✅ Start Server

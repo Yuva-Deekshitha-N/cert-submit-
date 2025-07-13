@@ -64,6 +64,7 @@ export default function UploadCertificate() {
       console.log("Server response:", response.data);
 
       navigate("/certificates");
+      
     } catch (err: any) {
       console.error("Upload error:", err.response?.data || err.message || err);
 
@@ -79,6 +80,7 @@ export default function UploadCertificate() {
       setLoading(false);
     }
   }
+  
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
