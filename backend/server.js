@@ -8,6 +8,7 @@ const dotenv = require("dotenv");
 const Certificate = require("./models/Certificate");
 const session = require("express-session");
 const googleAuthRoutes = require("./routes/googleAuth");
+const authRoutes = require('./routes/authRoutes');
 
 dotenv.config();
 
@@ -41,6 +42,8 @@ app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   next();
 });
+app.use("/api/auth", authRoutes); // ✅ This enables /api/auth/login and /register
+
 
 // ✅ Multer setup for file uploads
 const storage = multer.diskStorage({
