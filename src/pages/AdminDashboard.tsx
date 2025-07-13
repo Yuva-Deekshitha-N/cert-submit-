@@ -31,9 +31,11 @@ const AdminDashboard = () => {
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
-  // ✅ Redirect if not admin
+  // ✅ Admin login validation (case-insensitive email match)
   useEffect(() => {
-    if (!user || !ADMIN_EMAILS.includes(user.email)) {
+    console.log("👤 Logged in user:", user);
+    const email = user?.email?.toLowerCase();
+    if (!email || !ADMIN_EMAILS.includes(email)) {
       navigate("/unauthorized", { replace: true });
     }
   }, [user, navigate]);
@@ -99,6 +101,9 @@ const AdminDashboard = () => {
     <>
       <AdminNavbar />
       <div className="p-6 bg-white min-h-screen">
+        <h1 className="text-2xl font-bold text-red-600 mb-6">
+          Admin Dashboard
+        </h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {certificates.length > 0 ? (
             certificates.map((cert) => (

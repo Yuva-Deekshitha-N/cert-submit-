@@ -1,4 +1,3 @@
-// src/components/AdminNavbar.tsx
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -12,7 +11,7 @@ const AdminNavbar = () => {
       <div className="flex items-center gap-4">
         {user && (
           <>
-            <span className="text-sm">{user.name}</span>
+            <span className="text-sm">{user.email}</span>
             <button
               onClick={() => {
                 logout();

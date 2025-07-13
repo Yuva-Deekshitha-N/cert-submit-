@@ -5,7 +5,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { uploadCertificate } from "@/api/certificateApi";
 import { useNotifications } from "@/context/NotificationContext";
 
-
 export default function UploadCertificate() {
   const [file, setFile] = useState<File | null>(null);
   const [certificateName, setCertificateName] = useState("");
@@ -16,7 +15,6 @@ export default function UploadCertificate() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { addNotification } = useNotifications();
-
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0] || null;
@@ -47,10 +45,10 @@ export default function UploadCertificate() {
       setMessage("");
 
       const formData = new FormData();
-      formData.append("certificate", file);
+      formData.append("file", file); // ✅ Correct key
       formData.append("studentEmail", user.email);
       formData.append("name", certificateName);
-      formData.append("status", "Pending"); // Always default to "Pending" for students
+      formData.append("status", "Pending");
 
       const response = await uploadCertificate(formData);
 
@@ -60,26 +58,22 @@ export default function UploadCertificate() {
         duration: 4000,
       });
 
-      // on success
-      addNotification(
-        `✅ "${certificateName}" uploaded successfully.`,
-        "success"
-      );
-
-      // on failure
-      addNotification(
-        `❌ Failed to upload "${certificateName}".`,
-        "warning"
-      );
-
+      addNotification(`✅ "${certificateName}" uploaded successfully.`, "success");
 
       setMessage("✅ Certificate uploaded successfully!");
       console.log("Server response:", response.data);
 
-
       navigate("/certificates");
     } catch (err: any) {
       console.error("Upload error:", err.response?.data || err.message || err);
+
+      toast({
+        title: "❌ Upload Failed",
+        description: err.response?.data?.message || "Something went wrong.",
+        variant: "destructive",
+      });
+
+      addNotification(`❌ Failed to upload "${certificateName}".`, "warning");
       setMessage("❌ Upload failed. Try again.");
     } finally {
       setLoading(false);

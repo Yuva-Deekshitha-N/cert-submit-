@@ -18,7 +18,7 @@ const upload = multer({ storage });
 router.post(
   "/upload",
   verifyToken,
-  upload.single("certificate"),
+  upload.single("file"),
   async (req, res) => {
     try {
       const { studentEmail, name } = req.body;
