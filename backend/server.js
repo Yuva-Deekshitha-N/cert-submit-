@@ -32,6 +32,7 @@ app.use(cors({
   ],
   credentials: true
 }));
+app.use(session({ secret: "secret", resave: false, saveUninitialized: true }));
 
 app.use("/api/auth", googleAuthRoutes);
 // ✅ CORS Security Headers (for COOP/COEP)
