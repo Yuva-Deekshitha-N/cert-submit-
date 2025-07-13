@@ -31,18 +31,20 @@ const AdminDashboard = () => {
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
-  // ✅ Admin login validation (case-insensitive email match)
+  // ✅ Admin access validation (case-insensitive match)
   useEffect(() => {
-    console.log("👤 Logged in user:", user);
     const email = user?.email?.toLowerCase();
-    if (!email || !ADMIN_EMAILS.includes(email)) {
+    const isAdmin = email && ADMIN_EMAILS.map(e => e.toLowerCase()).includes(email);
+
+    if (!email || !isAdmin) {
       navigate("/unauthorized", { replace: true });
     }
   }, [user, navigate]);
 
-  // ✅ Fetch all certificates (admin only)
+  // ✅ Fetch all certificates
   useEffect(() => {
-    if (!user) return;
+    if (!user?.token) return;
+
     axios
       .get(`${import.meta.env.VITE_API_BASE_URL}/api/certificates`, {
         headers: { Authorization: `Bearer ${user.token}` },
@@ -55,22 +57,25 @@ const AdminDashboard = () => {
           description: "Could not fetch data. Please try again.",
           variant: "destructive",
         });
+
         if (err.response?.status === 401) logout();
       });
   }, [user, logout, toast]);
 
-  // ✅ Handle status/feedback update
+  // ✅ Handle status & feedback update
   const handleUpdate = async (
     id: string,
     status: string,
     feedback: string
   ) => {
+    if (!user?.token) return;
+
     try {
       const res = await axios.put(
         `${import.meta.env.VITE_API_BASE_URL}/api/certificates/${id}`,
         { status, feedback },
         {
-          headers: { Authorization: `Bearer ${user?.token}` },
+          headers: { Authorization: `Bearer ${user.token}` },
         }
       );
 
@@ -104,6 +109,7 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold text-red-600 mb-6">
           Admin Dashboard
         </h1>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {certificates.length > 0 ? (
             certificates.map((cert) => (
@@ -139,7 +145,7 @@ const AdminDashboard = () => {
 
                   <Label>Feedback</Label>
                   <Textarea
-                    defaultValue={cert.feedback}
+                    defaultValue={cert.feedback || ""}
                     onBlur={(e) =>
                       handleUpdate(cert._id, cert.status, e.target.value)
                     }
