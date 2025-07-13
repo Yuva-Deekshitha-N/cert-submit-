@@ -1,8 +1,14 @@
+// src/pages/AdminDashboard.tsx
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -19,75 +25,76 @@ import { useToast } from "@/components/ui/use-toast";
 const ADMIN_EMAILS = ["deekshitha123@gmail.com", "admin2@gmail.com"];
 
 const AdminDashboard = () => {
-  const { user } = useAuth();
-  const token = user?.token;
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [certificates, setCertificates] = useState<any[]>([]);
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
-  // ✅ Only allow admins
+  // 1) Guard: only admins
   useEffect(() => {
     if (!user || !ADMIN_EMAILS.includes(user.email)) {
-      navigate("/unauthorized");
-      return;
+      navigate("/unauthorized", { replace: true });
     }
   }, [user, navigate]);
 
-  // ✅ Fetch all certificates
+  // 2) Fetch all certificates with Bearer token
   useEffect(() => {
-    const fetchCertificates = async () => {
-      try {
-        const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/certificates`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (!user) return;
+    axios
+      .get(`${import.meta.env.VITE_API_BASE_URL}/api/certificates`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      })
+      .then((res) => {
         setCertificates(res.data);
-      } catch (err) {
-        console.error("Error fetching certs:", err);
+      })
+      .catch((err) => {
+        console.error("❌ Error fetching certificates:", err);
         toast({
-          title: "❌ Error",
-          description: "Failed to fetch certificates.",
+          title: "Error",
+          description: "Unable to load certificates.",
           variant: "destructive",
         });
-      }
-    };
+        // Optional: if 401, force logout
+        if (err.response?.status === 401) logout();
+      });
+  }, [user, logout, toast]);
 
-    if (user && ADMIN_EMAILS.includes(user.email)) {
-      fetchCertificates();
-    }
-  }, [user, token, toast]);
-
-  // ✅ Status & feedback updater
-  const handleUpdate = async (id: string, status: string, feedback: string) => {
+  // 3) Handler to update status or feedback
+  const handleUpdate = async (
+    id: string,
+    status: string,
+    feedback: string
+  ) => {
     try {
       const res = await axios.put(
         `${import.meta.env.VITE_API_BASE_URL}/api/certificates/${id}`,
         { status, feedback },
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${user?.token}` },
         }
       );
 
+      // Update local state
       setCertificates((prev) =>
-        prev.map((cert) =>
-          cert._id === id ? { ...cert, status, feedback } : cert
+        prev.map((c) =>
+          c._id === id ? { ...c, status: res.data.status, feedback: res.data.feedback } : c
         )
       );
 
       toast({
-        title: "✅ Status Updated",
-        description: `Status set to ${status}`,
+        title: "Updated",
+        description: `Certificate marked ${res.data.status}`,
       });
-
       addNotification(
-        `📢 Certificate "${res.data.certificateName}" updated to ${res.data.status}`,
+        `Certificate "${res.data.name}" set to "${res.data.status}"`,
         "info"
       );
     } catch (err) {
-      console.error("Update failed:", err);
+      console.error("❌ Update failed:", err);
       toast({
-        title: "❌ Update Failed",
-        description: "Could not update certificate status.",
+        title: "Update Failed",
+        description: "Could not update that certificate.",
         variant: "destructive",
       });
     }
@@ -102,22 +109,22 @@ const AdminDashboard = () => {
             <CardHeader>
               <CardTitle>{cert.name}</CardTitle>
               <p className="text-sm text-gray-600">
-                Uploaded by: {cert.studentEmail}
+                Student: {cert.studentEmail}
               </p>
               <p className="text-sm">
                 Status: <strong>{cert.status}</strong>
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <Label>Status</Label>
               <Select
                 defaultValue={cert.status}
                 onValueChange={(value) =>
-                  handleUpdate(cert._id, value, cert.feedback)
+                  handleUpdate(cert._id, value, cert.feedback || "")
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Pick one" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Pending">Pending</SelectItem>
@@ -127,13 +134,13 @@ const AdminDashboard = () => {
                 </SelectContent>
               </Select>
 
-              <Label className="mt-3">Feedback</Label>
+              <Label>Feedback</Label>
               <Textarea
                 defaultValue={cert.feedback}
                 onBlur={(e) =>
                   handleUpdate(cert._id, cert.status, e.target.value)
                 }
-                className="w-full mt-1"
+                placeholder="Enter any notes…"
               />
 
               {cert.url && (
@@ -141,14 +148,19 @@ const AdminDashboard = () => {
                   href={cert.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-block text-blue-600 hover:underline"
+                  className="text-blue-600 hover:underline"
                 >
-                  View Certificate
+                  View Uploaded File
                 </a>
               )}
             </CardContent>
           </Card>
         ))}
+        {certificates.length === 0 && (
+          <p className="col-span-full text-center text-gray-500">
+            No certificates to review.
+          </p>
+        )}
       </div>
     </div>
   );
