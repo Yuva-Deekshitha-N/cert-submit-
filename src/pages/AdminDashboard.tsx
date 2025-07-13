@@ -9,7 +9,6 @@ import {
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -31,36 +30,33 @@ const AdminDashboard = () => {
   const { addNotification } = useNotifications();
   const { toast } = useToast();
 
-  // 1) Guard: only admins
+  // ✅ Redirect if not admin
   useEffect(() => {
     if (!user || !ADMIN_EMAILS.includes(user.email)) {
       navigate("/unauthorized", { replace: true });
     }
   }, [user, navigate]);
 
-  // 2) Fetch all certificates with Bearer token
+  // ✅ Fetch all certificates (admin only)
   useEffect(() => {
     if (!user) return;
     axios
       .get(`${import.meta.env.VITE_API_BASE_URL}/api/certificates`, {
         headers: { Authorization: `Bearer ${user.token}` },
       })
-      .then((res) => {
-        setCertificates(res.data);
-      })
+      .then((res) => setCertificates(res.data))
       .catch((err) => {
         console.error("❌ Error fetching certificates:", err);
         toast({
-          title: "Error",
-          description: "Unable to load certificates.",
+          title: "Error loading certificates",
+          description: "Could not fetch data. Please try again.",
           variant: "destructive",
         });
-        // Optional: if 401, force logout
         if (err.response?.status === 401) logout();
       });
   }, [user, logout, toast]);
 
-  // 3) Handler to update status or feedback
+  // ✅ Handle status/feedback update
   const handleUpdate = async (
     id: string,
     status: string,
@@ -75,26 +71,25 @@ const AdminDashboard = () => {
         }
       );
 
-      // Update local state
+      // ✅ Replace the updated certificate
       setCertificates((prev) =>
-        prev.map((c) =>
-          c._id === id ? { ...c, status: res.data.status, feedback: res.data.feedback } : c
-        )
+        prev.map((c) => (c._id === id ? { ...c, ...res.data } : c))
       );
 
       toast({
-        title: "Updated",
-        description: `Certificate marked ${res.data.status}`,
+        title: "Certificate updated",
+        description: `Marked as ${res.data.status}`,
       });
+
       addNotification(
-        `Certificate "${res.data.name}" set to "${res.data.status}"`,
+        `Certificate "${res.data.name}" updated to "${res.data.status}"`,
         "info"
       );
     } catch (err) {
       console.error("❌ Update failed:", err);
       toast({
         title: "Update Failed",
-        description: "Could not update that certificate.",
+        description: "Could not update certificate status.",
         variant: "destructive",
       });
     }
@@ -103,60 +98,63 @@ const AdminDashboard = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {certificates.map((cert) => (
-          <Card key={cert._id}>
-            <CardHeader>
-              <CardTitle>{cert.name}</CardTitle>
-              <p className="text-sm text-gray-600">
-                Student: {cert.studentEmail}
-              </p>
-              <p className="text-sm">
-                Status: <strong>{cert.status}</strong>
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Label>Status</Label>
-              <Select
-                defaultValue={cert.status}
-                onValueChange={(value) =>
-                  handleUpdate(cert._id, value, cert.feedback || "")
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pick one" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+        {certificates.length > 0 ? (
+          certificates.map((cert) => (
+            <Card key={cert._id}>
+              <CardHeader>
+                <CardTitle>{cert.name}</CardTitle>
+                <p className="text-sm text-gray-600">
+                  Student: {cert.studentEmail}
+                </p>
+                <p className="text-sm">
+                  Status: <strong>{cert.status}</strong>
+                </p>
+              </CardHeader>
 
-              <Label>Feedback</Label>
-              <Textarea
-                defaultValue={cert.feedback}
-                onBlur={(e) =>
-                  handleUpdate(cert._id, cert.status, e.target.value)
-                }
-                placeholder="Enter any notes…"
-              />
-
-              {cert.url && (
-                <a
-                  href={cert.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+              <CardContent className="space-y-3">
+                <Label>Status</Label>
+                <Select
+                  defaultValue={cert.status}
+                  onValueChange={(value) =>
+                    handleUpdate(cert._id, value, cert.feedback || "")
+                  }
                 >
-                  View Uploaded File
-                </a>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-        {certificates.length === 0 && (
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Label>Feedback</Label>
+                <Textarea
+                  defaultValue={cert.feedback}
+                  onBlur={(e) =>
+                    handleUpdate(cert._id, cert.status, e.target.value)
+                  }
+                  placeholder="Write feedback here..."
+                />
+
+                {cert.url && (
+                  <a
+                    href={cert.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline block"
+                  >
+                    View Uploaded File
+                  </a>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
           <p className="col-span-full text-center text-gray-500">
             No certificates to review.
           </p>

@@ -18,7 +18,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNotifications } from "@/context/NotificationContext";
 import { useAuth } from "@/context/AuthContext"; // ← pull in your AuthContext
 
@@ -56,38 +56,42 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
   const { addNotification } = useNotifications();
+  const hasNotified = useRef(false); // 👈 add this line
 
   useEffect(() => {
-    // if no user or no email, skip fetching
-    if (!user?.email) {
+  if (!user?.email || hasNotified.current) {
+    setLoading(false);
+    return;
+  }
+
+  fetch(`${API_URL}/api/certificates/${user.email}`)
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    })
+    .then((data) => {
+      setCertificates(data);
       setLoading(false);
-      return;
-    }
 
-    fetch(`${API_URL}/api/certificates/${user.email}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`Server error: ${res.status}`);
-        const data = await res.json();
-        return Array.isArray(data) ? data : [];
-      })
-      .then((data) => {
-        setCertificates(data);
-        setLoading(false);
+      const completed  = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+      const pending    = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+      const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
 
-        const completed  = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-        const pending    = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
-        const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
-
+      // ✅ Only notify once
+      if (!hasNotified.current) {
         if (completed)  addNotification(`${completed} certificates marked as Completed.`, "success");
         if (inprogress) addNotification(`${inprogress} certificates are In Progress.`, "info");
         if (pending)    addNotification(`${pending} certificates are Pending.`, "warning");
-      })
-      .catch((err) => {
-        console.error("Failed to fetch certificates:", err);
-        setCertificates([]);
-        setLoading(false);
-      });
-  }, [user, addNotification]);
+        hasNotified.current = true; // 🔐 lock
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to fetch certificates:", err);
+      setCertificates([]);
+      setLoading(false);
+    });
+}, [user, addNotification]);
 
   if (loading) {
     return (

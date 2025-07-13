@@ -1,3 +1,4 @@
+// routes/certificates.js
 const express = require("express");
 const router = express.Router();
 const Certificate = require("../models/Certificate");
@@ -6,22 +7,16 @@ const path = require("path");
 const multer = require("multer");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
-// ✅ Storage setup for uploaded files
+// File Upload Setup
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  },
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
 });
 const upload = multer({ storage });
 
-
-// ✅ Upload certificate (Student role → always 'Pending')
+// Upload Certificate
 router.post(
-  "/api/certificates/upload",
+  "/upload",
   verifyToken,
   upload.single("certificate"),
   async (req, res) => {
@@ -52,33 +47,26 @@ router.post(
   }
 );
 
-
-// ✅ Admin updates certificate status and feedback
-router.put("/api/certificates/:id", verifyToken, verifyAdmin, async (req, res) => {
+// Update Certificate
+router.put("/:id", verifyToken, verifyAdmin, async (req, res) => {
   const { status, feedback } = req.body;
-
   try {
     const cert = await Certificate.findById(req.params.id);
-    if (!cert) {
-      return res.status(404).json({ message: "Certificate not found" });
-    }
+    if (!cert) return res.status(404).json({ message: "Certificate not found" });
 
     cert.status = status || cert.status;
     cert.feedback = feedback || cert.feedback;
 
-    const updatedCert = await cert.save();
-
-    // ✅ Send the updated cert directly (to match frontend expectations)
-    res.json(updatedCert);
+    const updated = await cert.save();
+    res.json(updated);
   } catch (err) {
     console.error("Update failed:", err);
     res.status(500).json({ message: "Update failed", error: err.message });
   }
 });
 
-
-// ✅ Admin-only: Get all certificates
-router.get("/api/certificates", verifyToken, verifyAdmin, async (req, res) => {
+// Get All Certificates
+router.get("/", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const certs = await Certificate.find().sort({ createdAt: -1 });
     res.json(certs);
@@ -87,18 +75,12 @@ router.get("/api/certificates", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-
-// ✅ Delete certificate (admin only)
-router.delete("/api/certificates/:id", verifyToken, verifyAdmin, async (req, res) => {
-  const id = req.params.id;
-
+// Delete Certificate
+router.delete("/:id", verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const cert = await Certificate.findByIdAndDelete(id);
-    if (!cert) {
-      return res.status(404).json({ message: "Certificate not found" });
-    }
+    const cert = await Certificate.findByIdAndDelete(req.params.id);
+    if (!cert) return res.status(404).json({ message: "Certificate not found" });
 
-    // Delete file from /uploads
     if (cert.url) {
       const filePath = path.join(__dirname, "../uploads", path.basename(cert.url));
       fs.unlink(filePath, (err) => {

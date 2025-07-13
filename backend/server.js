@@ -5,47 +5,40 @@ const path = require("path");
 const fs = require("fs");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-
-dotenv.config(); // Load .env file
 const Certificate = require("./models/Certificate");
 
+dotenv.config();
+
 const app = express();
-app.use(express.json());
 const PORT = process.env.PORT || 8000;
 
-
-// Ensure uploads folder exists
+// ✅ Ensure uploads folder exists
 const uploadsDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log("📁 Created uploads directory");
 }
 
+// ✅ Middleware
+app.use(express.json());
+app.use("/uploads", express.static(uploadsDir));
+app.use(cors({
+  origin: [
+    "https://cert-submit.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:8080"
+  ],
+  credentials: true
+}));
+
+// ✅ CORS Security Headers (for COOP/COEP)
 app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
   next();
 });
 
-
-// CORS config
-app.use(
-  cors({
-    origin: [
-      "https://cert-submit.vercel.app",
-      "http://localhost:5173",
-      "http://localhost:8080",
-    ],
-    credentials: true,
-  })
-);
-
-// Middleware
-app.use(express.json());
-app.use("/uploads", express.static(uploadsDir)); // Serve uploaded files
-app.use("/api/auth", require("./routes/authRoutes")); // ✅ Correct path to authRoutes.js
-
-// Multer config
+// ✅ Multer setup for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
@@ -55,120 +48,118 @@ const storage = multer.diskStorage({
     cb(null, `${uniqueSuffix}-${file.originalname}`);
   },
 });
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+const upload = multer({ storage });
+
+// ✅ MongoDB Connection
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  console.log("✅ Connected to MongoDB");
+}).catch((err) => {
+  console.error("❌ MongoDB connection error:", err);
 });
 
-// MongoDB connect
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("✅ Connected to MongoDB"))
-  .catch((err) => console.error("❌ MongoDB connection error:", err));
+// ---------------------------
+// ✅ ROUTES
+// ---------------------------
 
 // Upload certificate
 app.post("/api/certificates/upload", upload.single("certificate"), async (req, res) => {
-  console.log("🔔 Upload endpoint hit");
-
-  const { studentEmail, certStatus, certificateName } = req.body;
-  const file = req.file;
-
-  if (!file) {
-    console.error("❌ No file uploaded");
-    return res.status(400).json({ message: "No file uploaded." });
-  }
-
-  const BASE_URL = process.env.BASE_URL || `https://cert-submit.onrender.com`;
-  const fileUrl = `${BASE_URL}/uploads/${file.filename}`;
-
-  const certificate = new Certificate({
-    studentEmail,
-    name: certificateName || file.originalname,
-    status: certStatus,
-    dueDate: `Submitted on ${new Date().toDateString()}`,
-    priority: "low",
-    description: "Uploaded certificate file",
-    url: fileUrl,
-    submissions: [
-      {
-        date: new Date().toDateString(),
-        office: "Academic Section",
-        status: "Approved",
-      },
-    ],
-  });
-
   try {
+    const { studentEmail, certStatus, certificateName } = req.body;
+    const file = req.file;
+
+    if (!file) return res.status(400).json({ message: "No file uploaded." });
+
+    const BASE_URL = process.env.BASE_URL || "https://cert-submit.onrender.com";
+    const fileUrl = `${BASE_URL}/uploads/${file.filename}`;
+
+    const certificate = new Certificate({
+      studentEmail,
+      name: certificateName || file.originalname,
+      status: certStatus || "Pending",
+      dueDate: `Submitted on ${new Date().toDateString()}`,
+      priority: "low",
+      description: "Uploaded certificate file",
+      url: fileUrl,
+      submissions: [
+        {
+          date: new Date().toDateString(),
+          office: "Academic Section",
+          status: "Approved",
+        },
+      ],
+    });
+
     const saved = await certificate.save();
-    console.log("✅ Certificate saved:", saved);
-    res.status(200).json({ success: true, message: "✅ Uploaded", certificate: saved });
+    res.status(201).json({ success: true, message: "✅ Uploaded", certificate: saved });
   } catch (err) {
-    console.error("❌ Error saving certificate:", err);
-    res.status(500).json({ success: false, message: "Failed to upload certificate." });
+    console.error("❌ Upload failed:", err);
+    res.status(500).json({ message: "Upload failed." });
   }
 });
 
-// Get all certificates
+// Get all certificates (admin)
 app.get("/api/certificates", async (req, res) => {
   try {
-    const certificates = await Certificate.find();
+    const certificates = await Certificate.find().sort({ createdAt: -1 });
     res.json(certificates);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch certificates" });
+    res.status(500).json({ message: "Failed to fetch certificates." });
   }
 });
 
-// Get certificates by student email
+// Get certificates by email (student view)
 app.get("/api/certificates/:email", async (req, res) => {
-  const { email } = req.params;
   try {
-    const certificates = await Certificate.find({ studentEmail: email });
+    const certificates = await Certificate.find({ studentEmail: req.params.email });
     res.json(certificates);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch certificates" });
+    res.status(500).json({ message: "Failed to fetch certificates." });
   }
 });
 
-// Update status
-app.patch("/api/certificates/:id/status", async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
+// ✅ PUT: Admin updates status + feedback (fix for AdminDashboard.tsx)
+app.put("/api/certificates/:id", async (req, res) => {
+  const { status, feedback } = req.body;
   try {
-    const updated = await Certificate.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    );
+    const cert = await Certificate.findById(req.params.id);
+    if (!cert) return res.status(404).json({ message: "Certificate not found" });
 
-    if (!updated) {
-      return res.status(404).json({ message: "Certificate not found" });
-    }
+    cert.status = status || cert.status;
+    cert.feedback = feedback || cert.feedback;
 
-    res.json({ success: true, message: "Status updated", certificate: updated });
+    const updated = await cert.save();
+    res.json(updated); // Frontend expects full object
   } catch (err) {
-    res.status(500).json({ success: false, message: "Failed to update status" });
+    res.status(500).json({ message: "Update failed", error: err.message });
   }
 });
 
 // Delete certificate
 app.delete("/api/certificates/:id", async (req, res) => {
   try {
-    const deleted = await Certificate.findByIdAndDelete(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ message: "Certificate not found." });
+    const cert = await Certificate.findByIdAndDelete(req.params.id);
+    if (!cert) return res.status(404).json({ message: "Certificate not found" });
+
+    // Remove file from disk
+    if (cert.url) {
+      const filePath = path.join(uploadsDir, path.basename(cert.url));
+      fs.unlink(filePath, (err) => {
+        if (err) console.warn("File delete warning:", err.message);
+      });
     }
-    res.status(200).json({ message: "✅ Certificate deleted." });
+
+    res.json({ success: true, message: "Certificate deleted." });
   } catch (err) {
-    console.error("❌ Error deleting certificate:", err);
-    res.status(500).json({ message: "Failed to delete certificate." });
+    res.status(500).json({ message: "Delete failed", error: err.message });
   }
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+// ---------------------------
+// ✅ Start Server
+// ---------------------------
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
 });
