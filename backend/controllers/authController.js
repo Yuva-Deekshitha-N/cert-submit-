@@ -7,6 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Only these emails will be admins
 const adminEmails = ["your-email@gmail.com", "teammate@example.com"];
 
+// ✅ Register Controller
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -23,18 +24,19 @@ exports.register = async (req, res) => {
     // Determine role
     const role = adminEmails.includes(email) ? "admin" : "student";
 
-    // Create user
+    // Create and save user
     const user = new User({ name, email, password: hashedPassword, role });
     await user.save();
 
     // Generate JWT token
     const token = jwt.sign(
-    {
-      email:user.email,
-      role:user.role,
-      name:ussername,
-    },
-      process.env.JWT_SECRET,
+      {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        id: user._id,
+      },
+      JWT_SECRET,
       { expiresIn: "1d" }
     );
 
@@ -53,6 +55,7 @@ exports.register = async (req, res) => {
   }
 };
 
+// ✅ Login Controller
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -61,13 +64,18 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    // Check password match
+    // Compare password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      {
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        id: user._id,
+      },
       JWT_SECRET,
       { expiresIn: "1d" }
     );

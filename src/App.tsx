@@ -19,6 +19,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/context/AuthContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import Unauthorized from "@/pages/Unauthorized";
+import CertificateDetails from "./pages/CertificateDetails";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +89,14 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/certificates/:id"
+                element={
+                    <ProtectedRoute>
+                    <CertificateDetails />
+                    </ProtectedRoute>
+                }
+                />
 
               {/* 404 */}
               <Route path="*" element={<NotFound />} />

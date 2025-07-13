@@ -20,7 +20,7 @@ import {
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { useNotifications } from "@/context/NotificationContext";
-import { useAuth } from "@/context/AuthContext"; // ← pull in your AuthContext
+import { useAuth } from "@/context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -52,46 +52,45 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 const Dashboard = () => {
-  const { user } = useAuth();              // ← get the logged‑in user
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<any[]>([]);
   const { addNotification } = useNotifications();
-  const hasNotified = useRef(false); // 👈 add this line
+  const hasNotified = useRef(false);
 
   useEffect(() => {
-  if (!user?.email || hasNotified.current) {
-    setLoading(false);
-    return;
-  }
-
-  fetch(`${API_URL}/api/certificates/${user.email}`)
-    .then(async (res) => {
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    })
-    .then((data) => {
-      setCertificates(data);
+    if (!user?.email || hasNotified.current) {
       setLoading(false);
+      return;
+    }
 
-      const completed  = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-      const pending    = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
-      const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+    fetch(`${API_URL}/api/certificates/${user.email}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Server error: ${res.status}`);
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+      })
+      .then((data) => {
+        setCertificates(data);
+        setLoading(false);
 
-      // ✅ Only notify once
-      if (!hasNotified.current) {
-        if (completed)  addNotification(`${completed} certificates marked as Completed.`, "success");
-        if (inprogress) addNotification(`${inprogress} certificates are In Progress.`, "info");
-        if (pending)    addNotification(`${pending} certificates are Pending.`, "warning");
-        hasNotified.current = true; // 🔐 lock
-      }
-    })
-    .catch((err) => {
-      console.error("Failed to fetch certificates:", err);
-      setCertificates([]);
-      setLoading(false);
-    });
-}, [user, addNotification]);
+        const completed = data.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+        const pending = data.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+        const inprogress = data.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+
+        if (!hasNotified.current) {
+          if (completed) addNotification(`${completed} certificates marked as Completed.`, "success");
+          if (inprogress) addNotification(`${inprogress} certificates are In Progress.`, "info");
+          if (pending) addNotification(`${pending} certificates are Pending.`, "warning");
+          hasNotified.current = true;
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch certificates:", err);
+        setCertificates([]);
+        setLoading(false);
+      });
+  }, [user, addNotification]);
 
   if (loading) {
     return (
@@ -101,10 +100,10 @@ const Dashboard = () => {
     );
   }
 
-  const completedCount   = certificates.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
-  const inProgressCount  = certificates.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
-  const pendingCount     = certificates.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
-  const progressPercent  = certificates.length ? (completedCount / certificates.length) * 100 : 0;
+  const completedCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.COMPLETED).length;
+  const inProgressCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.IN_PROGRESS).length;
+  const pendingCount = certificates.filter(c => c.status?.toLowerCase() === STATUS.PENDING).length;
+  const progressPercent = certificates.length ? (completedCount / certificates.length) * 100 : 0;
 
   const deadlines = certificates
     .filter(c => c.status?.toLowerCase() !== STATUS.COMPLETED && c.dueDate && c.dueDate !== "Submitted")
@@ -137,36 +136,32 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[
-              {
-                title: "Overall Progress",
-                content: <>
+            {[{
+              title: "Overall Progress",
+              content: (
+                <>
                   <div className="text-2xl font-bold">{completedCount}/{certificates.length}</div>
                   <Progress value={progressPercent} className="h-2 mt-2" />
                   <p className="text-xs text-muted-foreground mt-2">Certificates completed</p>
-                </>,
-              },
-              {
-                title: "Completed",
-                icon: <CheckCircle className="h-5 w-5 text-green-500 mr-2" />,
-                count: completedCount,
-                desc: "Certificates submitted",
-              },
-              {
-                title: "In Progress",
-                icon: <Clock className="h-5 w-5 text-blue-500 mr-2" />,
-                count: inProgressCount,
-                desc: "Certificates in process",
-              },
-              {
-                title: "Pending",
-                icon: <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />,
-                count: pendingCount,
-                desc: "Certificates to submit",
-              },
-            ].map((card, i) => (
+                </>
+              ),
+            }, {
+              title: "Completed",
+              icon: <CheckCircle className="h-5 w-5 text-green-500 mr-2" />,
+              count: completedCount,
+              desc: "Certificates submitted",
+            }, {
+              title: "In Progress",
+              icon: <Clock className="h-5 w-5 text-blue-500 mr-2" />,
+              count: inProgressCount,
+              desc: "Certificates in process",
+            }, {
+              title: "Pending",
+              icon: <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />,
+              count: pendingCount,
+              desc: "Certificates to submit",
+            }].map((card, i) => (
               <Card key={i}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
@@ -227,9 +222,11 @@ const Dashboard = () => {
                     <p className="text-sm text-muted-foreground">No certificates found.</p>
                   ) : (
                     certificates.map(c => (
-                      <div key={c._id?.toString() || c.id?.toString() || c.name}
-                           className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center space-x-4">
+                      <div
+                        key={c._id?.toString() || c.id?.toString() || c.name}
+                        className="p-4 border rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                      >
+                        <div className="flex items-center gap-4 flex-1">
                           <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
                             c.status?.toLowerCase() === STATUS.COMPLETED
                               ? "bg-green-100 text-green-700"
@@ -242,11 +239,38 @@ const Dashboard = () => {
                           <div>
                             <h4 className="font-semibold">{c.name}</h4>
                             <p className="text-sm text-muted-foreground">Due: {c.dueDate}</p>
+                            {c.feedback && (
+                              <p className="text-xs text-gray-500 italic">Feedback: {c.feedback}</p>
+                            )}
                           </div>
                         </div>
-                        <Link to={`/certificates/${c._id || c.id}`} className="text-sm text-blue-600 hover:underline">
-                          View Details
-                        </Link>
+
+                        <div className="flex items-center gap-3">
+                          {c.url?.endsWith(".pdf") ? (
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 underline"
+                            >
+                              View PDF
+                            </a>
+                          ) : (
+                            <img
+                              src={c.url}
+                              alt="Preview"
+                              className="w-12 h-12 object-cover border rounded"
+                            />
+                          )}
+
+                          <a
+                            href={c.url}
+                            download
+                            className="text-sm bg-gray-200 px-2 py-1 rounded hover:bg-gray-300"
+                          >
+                            Download
+                          </a>
+                        </div>
                       </div>
                     ))
                   )}

@@ -100,7 +100,7 @@ app.post("/api/certificates/upload", upload.single("certificate"), async (req, r
   }
 });
 
-// Get all certificates (admin)
+// ✅ Get all certificates (admin)
 app.get("/api/certificates", async (req, res) => {
   try {
     const certificates = await Certificate.find().sort({ createdAt: -1 });
@@ -110,7 +110,7 @@ app.get("/api/certificates", async (req, res) => {
   }
 });
 
-// Get certificates by email (student view)
+// ✅ Get certificates by email (student view)
 app.get("/api/certificates/:email", async (req, res) => {
   try {
     const certificates = await Certificate.find({ studentEmail: req.params.email });
@@ -120,7 +120,18 @@ app.get("/api/certificates/:email", async (req, res) => {
   }
 });
 
-// ✅ PUT: Admin updates status + feedback (fix for AdminDashboard.tsx)
+// ✅ Get single certificate by ID (for CertificateDetails page)
+app.get("/api/certificates/id/:id", async (req, res) => {
+  try {
+    const certificate = await Certificate.findById(req.params.id);
+    if (!certificate) return res.status(404).json({ message: "Certificate not found" });
+    res.json(certificate);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch certificate." });
+  }
+});
+
+// ✅ PUT: Admin updates status + feedback
 app.put("/api/certificates/:id", async (req, res) => {
   const { status, feedback } = req.body;
   try {
@@ -137,7 +148,7 @@ app.put("/api/certificates/:id", async (req, res) => {
   }
 });
 
-// Delete certificate
+// ✅ Delete certificate
 app.delete("/api/certificates/:id", async (req, res) => {
   try {
     const cert = await Certificate.findByIdAndDelete(req.params.id);

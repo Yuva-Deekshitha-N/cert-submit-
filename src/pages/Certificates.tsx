@@ -190,10 +190,12 @@ const Certificates = () => {
 
 const handleStatusChange = async (id: string, newStatus: string) => {
   try {
-    const response = await axios.patch(
-  `${API_URL}/api/certificates/${id}/status`,
+    const response = await axios.put(
+  `${API_URL}/api/certificates/${id}`,
   { status: newStatus }
 );
+
+
 
 
     if (response.status === 200) {

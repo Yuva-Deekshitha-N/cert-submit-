@@ -22,7 +22,14 @@ router.post("/register", async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
 
-    const newUser = new User({ name, email, password: hashed, role });
+    const newUser = new User({
+      name,
+      email,
+      password: hashed,
+      role,
+      authType: "local",
+    });
+
     await newUser.save();
 
     const token = jwt.sign(
@@ -78,7 +85,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// ✅ Google Login Route (Updated)
+// ✅ Google Login Route
 router.post("/google", async (req, res) => {
   const { token } = req.body;
 
@@ -103,9 +110,13 @@ router.post("/google", async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    // ✅ Create only if user not exists
     if (!user) {
-      user = await User.create({ name, email, role, authType: "google" });
+      user = await User.create({
+        name,
+        email,
+        role,
+        authType: "google",
+      });
     }
 
     const jwtToken = jwt.sign(
@@ -114,13 +125,19 @@ router.post("/google", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.status(200).json({ token: jwtToken });
+    res.status(200).json({
+      token: jwtToken,
+      user: {
+        name,
+        email,
+        role,
+      },
+    });
 
   } catch (error) {
     console.error("❌ Google token verification failed:", error);
     res.status(401).json({ message: "Invalid Google token" });
   }
 });
-
 
 module.exports = router;
