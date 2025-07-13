@@ -1,3 +1,4 @@
+// routes/auth.js
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
@@ -20,7 +21,7 @@ router.post("/register", async (req, res) => {
     if (existing) return res.status(400).json({ message: "User already exists" });
 
     const hashed = await bcrypt.hash(password, 10);
-    const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
+    const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "student";
 
     const newUser = new User({
       name,
@@ -106,7 +107,7 @@ router.post("/google", async (req, res) => {
     }
 
     const { email, name } = payload;
-    const role = ADMIN_EMAILS.includes(email) ? "admin" : "student";
+    const role = ADMIN_EMAILS.includes(email.toLowerCase()) ? "admin" : "student";
 
     let user = await User.findOne({ email });
 
