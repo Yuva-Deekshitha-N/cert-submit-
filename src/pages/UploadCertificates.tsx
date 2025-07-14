@@ -45,10 +45,10 @@ export default function UploadCertificate() {
       setMessage("");
 
       const formData = new FormData();
-      formData.append("certificate", file); // ✅ must match backend key
+      formData.append("certificate", file); // ✅ key must match multer field name
       formData.append("studentEmail", user.email);
-      formData.append("name", certificateName);
-      formData.append("status", "Pending");
+      formData.append("certificateName", certificateName); // ✅ FIXED key
+      formData.append("certStatus", "Pending"); // ✅ FIXED key
 
       const response = await uploadCertificate(formData);
 
@@ -62,6 +62,9 @@ export default function UploadCertificate() {
 
       setMessage("✅ Certificate uploaded successfully!");
       console.log("Server response:", response.data);
+
+      // ✅ Show uploaded file preview (from server)
+      setFilePreview(response.data.certificate.url);
 
       navigate("/certificates");
       
@@ -80,7 +83,6 @@ export default function UploadCertificate() {
       setLoading(false);
     }
   }
-  
 
   return (
     <div className="flex flex-col items-center gap-4 p-6">
@@ -110,14 +112,25 @@ export default function UploadCertificate() {
           required
         />
 
+        {/* ✅ Preview uploaded file (PDF or image) */}
         {filePreview && (
           <div className="text-sm text-gray-600">
-            <p className="mb-1">Preview:</p>
-            <img
-              src={filePreview}
-              alt="Preview"
-              className="max-h-40 border rounded"
-            />
+            <p className="mb-1">Uploaded File Preview:</p>
+            {filePreview.endsWith(".pdf") ? (
+              <iframe
+                src={filePreview}
+                width="100%"
+                height="400px"
+                className="border rounded"
+                title="PDF Preview"
+              ></iframe>
+            ) : (
+              <img
+                src={filePreview}
+                alt="Preview"
+                className="max-h-40 border rounded"
+              />
+            )}
           </div>
         )}
 
